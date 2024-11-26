@@ -1,6 +1,5 @@
 # product_details.py
 
-import cx_Oracle
 
 def fetch_product_details(product_code, oracle_conn, mongo_db):
     try:

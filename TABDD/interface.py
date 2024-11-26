@@ -3,11 +3,10 @@ from tkinter import messagebox
 from mongoDBConn import connect_mongodb
 from SQLConn import connect_oracle
 from register_user import register_user, login_user
-from cartOperations import add_to_cart, remove_from_cart, view_cart
-from checkout import checkout
-from feedback import feedback
 from tkinter import ttk
 from product_details import fetch_product_details
+from cart import add_to_cart, checkout
+from datetime import datetime
 
 # Establish initial database connections
 mongo_db = connect_mongodb()
@@ -17,28 +16,122 @@ oracle_conn = connect_oracle()
 if mongo_db is None or oracle_conn is None:
     exit("Failed to connect to databases.")
 
+def show_cart(cart, cart_frame):
+    for widget in cart_frame.winfo_children():
+        widget.destroy()
+
+    if not cart:
+        tk.Label(cart_frame, text="Cart is empty", font=("Helvetica", 12)).pack()
+        return
+
+    for item in cart:
+        tk.Label(
+            cart_frame,
+            text=f"{item['product_name']} (x{item['quantity']}): €{item['total']:.2f}",
+            font=("Helvetica", 10)
+        ).pack(anchor="w")
+
+    tk.Label(cart_frame, text=f"Total: €{sum(item['total'] for item in cart):.2f}", font=("Helvetica", 12, "bold")).pack()
+
+def fetch_orders(SystemUserCode):
+    try:
+        cursor = oracle_conn.cursor()
+        cursor.execute("""
+            SELECT orderCode, status, totalAmount
+            FROM Orders
+            WHERE SystemUserCode = :SystemUserCode
+        """, {"SystemUserCode": SystemUserCode})
+        orders = cursor.fetchall()
+        return orders
+    except Exception as e:
+        print(f"Error fetching orders: {e}")
+        return []
+    finally:
+        cursor.close()
+
+def show_order_details(order_code):
+    try:
+        # Buscar itens da coleção OrderItem no MongoDB
+        items = mongo_db.OrderItem.find({"orderCode": order_code})
+
+        details_window = tk.Toplevel()
+        details_window.title("Order Details")
+        details_window.geometry("400x300")
+
+        if not items:
+            tk.Label(details_window, text="No items found for this order.", font=("Helvetica", 12)).pack(pady=20)
+            return
+
+        for item in items:
+            product_name = item.get("productName", "Unknown")
+            quantity = item.get("quantity", 0)
+            total_amount = item.get("total", 0.0)
+
+            tk.Label(
+                details_window,
+                text=f"Product: {product_name}\nQuantity: {quantity}\nTotal: €{total_amount:.2f}\n",
+                font=("Helvetica", 10),
+                justify="left"
+            ).pack(anchor="w", padx=10, pady=5)
+    except Exception as e:
+        print(f"Error fetching order details: {e}")
+
+def show_orders(customer_code, orders_frame):
+    for widget in orders_frame.winfo_children():
+        widget.destroy()
+
+    orders = fetch_orders(customer_code)
+
+    if not orders:
+        tk.Label(orders_frame, text="No orders found.", font=("Helvetica", 12)).pack()
+        return
+
+    for order in orders:
+        order_code, status, total_amount = order
+
+        frame = tk.Frame(orders_frame, pady=5, padx=10)
+        frame.pack(fill="x", anchor="w")
+
+        tk.Label(frame, text=f"Order: {order_code}", font=("Helvetica", 10, "bold")).pack(anchor="w")
+        tk.Label(frame, text=f"Status: {status}\nTotal: €{total_amount:.2f}", font=("Helvetica", 10)).pack(anchor="w")
+        tk.Button(
+            frame, text="View Details", command=lambda o=order_code: show_order_details(o),
+            bg="#0984e3", fg="white"
+        ).pack(anchor="e", pady=5)
+
+def handle_add_to_cart(product_code_entry, quantity_entry, cart, cart_frame):
+    product_code = product_code_entry.get()
+    quantity = quantity_entry.get()
+
+    if not product_code or not quantity:
+        messagebox.showerror("Error", "Please enter a product quantity.")
+        return
+
+    try:
+        quantity = int(quantity)
+        add_to_cart(product_code, quantity, cart, oracle_conn)
+        show_cart(cart, cart_frame)
+    except ValueError:
+        messagebox.showerror("Error", "Quantity must be an integer.")
+
+
 def show_product_details(product_code, oracle_conn, mongo_db, details_frame):
-    # Buscar os detalhes do produto utilizando a função do arquivo separado
     product_details = fetch_product_details(product_code, oracle_conn, mongo_db)
-    
+
+    for widget in details_frame.winfo_children():
+        widget.destroy()
+
     if product_details:
-        # Limpar os detalhes existentes na área de detalhes
-        for widget in details_frame.winfo_children():
-            widget.destroy()
-        
-        # Exibir os detalhes do produto
-        details = (
+        details_text = (
             f"Product Code: {product_details['productCode']}\n"
-            f"Product Name: {product_details['productName']}\n"
+            f"Name: {product_details['productName']}\n"
             f"Category: {product_details['category']}\n"
-            f"Price: {product_details['price']}\n"
-            f"Stock Quantity: {product_details['stockQuantity']}\n"
-            f"Supplier: {product_details['supplier']}"
+            f"Price: €{product_details['price']}\n"
+            f"Stock: {product_details['stockQuantity']}\n"
         )
-        
-        tk.Label(details_frame, text=details, font=("Helvetica", 10), justify="left").pack(pady=10)
+        tk.Label(details_frame, text=details_text, font=("Helvetica", 10), justify="left", bg="#f5f5f5").pack()
     else:
-        messagebox.showerror("Error", "Product not found.")
+        tk.Label(details_frame, text="Product details not found.", font=("Helvetica", 12)).pack()
 
 def load_all_products(oracle_conn, mongo_db):
     products = []
@@ -75,200 +168,235 @@ def on_product_select(event, product_dropdown, oracle_conn, mongo_db, details_fr
                 show_product_details(product[0], oracle_conn, mongo_db, details_frame)
                 break
 
-
-
-""" # Fetch categories from the Category table
-def fetch_categories():
-    cursor = oracle_conn.cursor()
-    categories = []
-
+def show_product_ratings(product_code):
     try:
-        # Fetch unique categories from Category table
-        cursor.execute("SELECT DISTINCT name FROM Category")
-        categories = [row[0] for row in cursor.fetchall()]
+        ratings = mongo_db.productRating.find_one({"productCode": product_code}).get("ratings", [])
 
-    finally:
-        cursor.close()
+        ratings_window = tk.Toplevel()
+        ratings_window.title("Product Ratings and Comments")
+        ratings_window.geometry("400x300")
 
-    return categories
- """
-# Function to display products in a new window by category
-""" def show_category_products(category_name):
-    product_window = tk.Toplevel()
-    product_window.title(f"Products in Category: {category_name}")
-    product_window.geometry("500x400")
+        if not ratings:
+            tk.Label(ratings_window, text="No ratings or comments available.", font=("Helvetica", 12)).pack(pady=20)
+            return
 
-    cursor = oracle_conn.cursor()
+        for rating in ratings:
+            tk.Label(
+                ratings_window,
+                text=f"Rating: {rating['rating']}\nComment: {rating['comment']}\n",
+                font=("Helvetica", 10),
+                justify="left"
+            ).pack(anchor="w", padx=10, pady=5)
+    except Exception as e:
+        print(f"Error fetching ratings: {e}")
 
+def create_order(SystemUserCode, cart, delivery_address):
     try:
-        # Retrieve products linked to the selected category
+        cursor = oracle_conn.cursor()
+
+        # Generate a new orderCode
+        cursor.execute("SELECT MAX(orderCode) FROM Orders")
+        max_order_code = cursor.fetchone()[0] or 0
+        order_code = max_order_code + 1
+
+        # Calculate total amount
+        total_amount = sum(item['total'] for item in cart)
+
+        # Insert the order into the Orders table
+        order_date = datetime.now().strftime('%Y-%m-%d')
+        status = "in transit"
         cursor.execute(
-            SELECT p.productCode, p.productName, p.price, p.stockQuantity 
-            FROM Product p
-            JOIN Category c ON p.productCode = c.productCode
-            WHERE c.name = :cat
-        , {"cat": category_name})
-        products = cursor.fetchall()
-
-        # Display products if they exist
-        if products:
-            tk.Label(product_window, text="Products", font=("Helvetica", 12, "bold")).pack(pady=5)
-            for product in products:
-                productCode, productName, price, stockQuantity = product
-                product_info = f"Code: {productCode}, Name: {productName}, Price: {price}, Stock: {stockQuantity}"
-                product_button = tk.Button(product_window, text=product_info, command=lambda pc=productCode: show_product_details(pc))
-                product_button.pack(anchor="w", padx=10, pady=2)
-        else:
-            tk.Label(product_window, text="No products found in this category.", font=("Helvetica", 10)).pack(pady=20)
-
-    finally:
-        cursor.close()
-
-# Function to show detailed information about a selected product
-def show_product_details(product_code):
-    detail_window = tk.Toplevel()
-    detail_window.title(f"Product Details: Code {product_code}")
-    detail_window.geometry("400x300")
-
-    cursor = oracle_conn.cursor()
-    cursor.execute(
-        SELECT productCode, productName, category, price, stockQuantity, supplier 
-        FROM Product 
-        WHERE productCode = :code
-    , {"code": product_code})
-    product = cursor.fetchone()
-
-    if product:
-        productCode, productName, category, price, stockQuantity, supplier = product
-        details = (
-            f"Code: {productCode}\n"
-            f"Name: {productName}\n"
-            f"Category: {category}\n"
-            f"Price: {price}\n"
-            f"Stock: {stockQuantity}\n"
-            f"Supplier: {supplier}"
+            """
+            INSERT INTO Orders (orderCode, orderDate, totalAmount, status, SystemUserCode, deliveryAddress)
+            VALUES (:orderCode, TO_DATE(:orderDate, 'YYYY-MM-DD'), :totalAmount, :status, :SystemUserCode, :deliveryAddress)
+            """,
+            {
+                "orderCode": order_code,
+                "orderDate": order_date,
+                "totalAmount": total_amount,
+                "status": status,
+                "SystemUserCode": SystemUserCode,
+                "deliveryAddress": delivery_address
+            }
         )
-        tk.Label(detail_window, text=details, font=("Helvetica", 10), justify="left").pack(pady=10)
-    else:
-        tk.Label(detail_window, text="Product not found.", font=("Helvetica", 10)).pack(pady=20)
 
-    cursor.close()
+        # Insert items into MongoDB's OrderItem collection
+        order_items = [
+            {
+                "orderCode": order_code,
+                "productCode": item["product_code"],
+                "productName": item["product_name"],
+                "quantity": item["quantity"],
+                "total": item["total"]
+            }
+            for item in cart
+        ]
+        mongo_db.OrderItem.insert_many(order_items)
 
-# Function to search for products by name
-def search_product(search_entry, results_text):
-    product_name = search_entry.get()
-    cursor = oracle_conn.cursor()
-    results_text.delete(1.0, tk.END)
-
-    try:
-        # Search in Product table with case-insensitive partial match
-        cursor.execute(
-            SELECT productCode, productName, category, price, stockQuantity 
-            FROM Product 
-            WHERE LOWER(productName) LIKE LOWER(:name)
-        , {"name": f"%{product_name}%"})
-        products = cursor.fetchall()
-
-        if products:
-            results_text.insert(tk.END, "Products Found:\n")
-            for product in products:
-                productCode, productName, category, price, stockQuantity = product
-                product_info = f"Code: {productCode}, Name: {productName}, Category: {category}, Price: {price}, Stock: {stockQuantity}"
-                results_text.insert(tk.END, f"{product_info}\n")
-        else:
-            results_text.insert(tk.END, "No products found with that name.\n")
-
+        oracle_conn.commit()
+        print(f"Order {order_code} created successfully.")
+        return order_code
+    except Exception as e:
+        oracle_conn.rollback()
+        print(f"Error creating order: {e}")
+        return None
     finally:
         cursor.close()
- """
-# Main window setup with category buttons and search functionality
-def open_main_window():
-    # Conectar ao MongoDB e Oracle
-    mongo_db = connect_mongodb()
-    oracle_conn = connect_oracle()
 
-    if mongo_db is None or oracle_conn is None:
-        exit("Failed to connect to databases.")
-    
+
+def handle_checkout(SystemUserCode, cart, refresh_orders):
+    if not cart:
+        messagebox.showerror("Error", "Cart is empty.")
+        return
+
+    # Get delivery address from user
+    checkout_window = tk.Toplevel()
+    checkout_window.title("Checkout")
+    checkout_window.geometry("400x250")
+
+    tk.Label(checkout_window, text="Enter Delivery Address", font=("Helvetica", 12)).pack(pady=10)
+    delivery_address_entry = tk.Entry(checkout_window, width=50)
+    delivery_address_entry.pack(pady=5)
+
+    def confirm_checkout():
+        delivery_address = delivery_address_entry.get()
+        if not delivery_address:
+            messagebox.showerror("Error", "Delivery address is required.")
+            return
+
+        print(f"Attempting to create order for user: {SystemUserCode}")
+        print(f"Cart contents: {cart}")
+        print(f"Delivery Address: {delivery_address}")
+
+        order_code = create_order(SystemUserCode, cart, delivery_address)
+        if order_code:
+            messagebox.showinfo("Success", f"Order {order_code} created successfully.")
+            cart.clear()
+            refresh_orders()
+            checkout_window.destroy()
+        else:
+            messagebox.showerror("Error", "Failed to create order. Check logs for details.")
+
+    tk.Button(checkout_window, text="Confirm", command=confirm_checkout, bg="#27ae60", fg="white").pack(pady=10)
+
+def open_main_window(SystemUserCode):
+    cart = []
     main_window = tk.Tk()
     main_window.title("Main Page")
-    main_window.geometry("800x600")  # Ajuste o tamanho da janela
+    main_window.geometry("1200x600")
     main_window.configure(bg="#f5f5f5")
-    
-    # Carregar todos os produtos de ambos os bancos de dados
-    products = load_all_products(oracle_conn, mongo_db)
 
-    # Barra com o dropdown que exibe todos os produtos disponíveis
-    product_dropdown_frame = tk.Frame(main_window, bg="#f5f5f5")
-    product_dropdown_frame.pack(pady=20)
+    # Orders Section
+    orders_frame = tk.Frame(main_window, bg="#f5f5f5", width=400)
+    orders_frame.pack(side="left", fill="y", padx=10, pady=10)
 
-    tk.Label(product_dropdown_frame, text="Select a Product", font=("Helvetica", 14, "bold"), bg="#f5f5f5").grid(row=0, column=0, padx=5, pady=5)
+    tk.Label(orders_frame, text="My Orders", font=("Helvetica", 14, "bold"), bg="#f5f5f5").pack(pady=10)
 
-    # Dropdown para exibir todos os produtos
-    product_dropdown = ttk.Combobox(product_dropdown_frame, width=40)
+    def refresh_orders():
+        show_orders(SystemUserCode, orders_frame)
+
+    refresh_orders()
+
+    # Cart and Product Section
+    right_frame = tk.Frame(main_window, bg="#f5f5f5")
+    right_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
+
+    # Cart Frame
+    cart_frame = tk.Frame(right_frame, bg="#f5f5f5")
+    cart_frame.pack(fill="x", pady=10)
+
+    tk.Label(cart_frame, text="Cart", font=("Helvetica", 14, "bold"), bg="#f5f5f5").pack(pady=10)
+
+    def refresh_cart():
+        show_cart(cart, cart_frame)
+
+    # Product Selection Frame
+    product_frame = tk.Frame(right_frame, bg="#f5f5f5")
+    product_frame.pack(fill="both", expand=True, pady=10)
+
+    tk.Label(product_frame, text="Select a Product", font=("Helvetica", 12), bg="#f5f5f5").grid(row=0, column=0, padx=5, pady=5)
+
+    product_dropdown = ttk.Combobox(product_frame, width=40)
     product_dropdown.grid(row=1, column=0, padx=5, pady=5)
 
-    # Preencher o dropdown com os produtos encontrados
-    product_dropdown['values'] = [product[1] for product in products]
-    product_dropdown.set('')  # Limpar seleção anterior
-    product_dropdown.product_list = products  # Armazenar lista de produtos no widget
+    products = load_all_products(oracle_conn, mongo_db)
+    product_dropdown["values"] = [product[1] for product in products]
+    product_dropdown.set("")
 
-    # Frame para exibir os detalhes do produto abaixo do dropdown
-    details_frame = tk.Frame(main_window, bg="#f5f5f5")
-    details_frame.pack(pady=10)
-    
-    # Vincular evento de seleção do produto no dropdown
-    product_dropdown.bind("<<ComboboxSelected>>", lambda event: on_product_select(event, product_dropdown, oracle_conn, mongo_db, details_frame))
-    
-    """ # Sidebar with categories
-    tk.Label(main_window, text="Categories", font=("Helvetica", 14, "bold"), bg="#f5f5f5").pack(pady=10, anchor="w")
-    sidebar = tk.Frame(main_window, bg="#dfe6e9", width=200, height=400)
-    sidebar.pack(side="left", fill="y") """
+    details_frame = tk.Frame(product_frame, bg="#f5f5f5")
+    details_frame.grid(row=2, column=0, padx=5, pady=10)
 
-    # Get categories and add buttons for each category in the sidebar
-    """  categories = fetch_categories()
-    for category in categories:
-        category_button = tk.Button(sidebar, text=category, width=20, command=lambda cat=category: show_category_products(cat))
-        category_button.pack(pady=2, padx=5, anchor="w")
-    """
-    """ # Search Section in main area
-    search_frame = tk.Frame(main_window, bg="#f5f5f5")
-    search_frame.pack(pady=10)
-    
-    tk.Label(search_frame, text="Search Products", font=("Helvetica", 14, "bold"), bg="#f5f5f5").grid(row=0, column=0, columnspan=2, pady=5)
+    view_ratings_button = None  # Placeholder for the button
 
-    search_entry = tk.Entry(search_frame, width=30)
-    search_entry.grid(row=1, column=0, padx=5)
+    def handle_dropdown_selection(event=None):
+        nonlocal view_ratings_button
 
-    results_text = tk.Text(main_window, height=10, width=60, bg="#ffffff", font=("Helvetica", 10))
-    results_text.pack(pady=10) """
+        selected_product_name = product_dropdown.get()
+        product_code = None
 
-    """ search_button = tk.Button(
-        search_frame, text="Search",
-        command=lambda: search_product(search_entry, results_text),
-        bg="#0984e3", fg="white", font=("Helvetica", 10, "bold")
-    )
-    search_button.grid(row=1, column=1, padx=5)
+        # Clear details frame
+        for widget in details_frame.winfo_children():
+            widget.destroy()
 
-    # Cart Management Section
-    cart_frame = tk.Frame(main_window, bg="#f5f5f5")
-    cart_frame.pack(side="right", expand=True, fill="both")
+        # Display product details
+        for product in products:
+            if product[1] == selected_product_name:
+                product_code = product[0]
+                show_product_details(product_code, oracle_conn, mongo_db, details_frame)
+                break
 
-    tk.Label(cart_frame, text="Shopping Cart", font=("Helvetica", 14, "bold"), bg="#f5f5f5").pack(pady=10)
-    
-    add_button = tk.Button(cart_frame, text="Add to Cart", command=lambda: add_to_cart(mongo_db), bg="#0984e3", fg="white", font=("Helvetica", 10, "bold"))
-    add_button.pack(pady=5)
+        # Update the View Ratings button
+        if product_code:
+            if not view_ratings_button:
+                view_ratings_button = tk.Button(
+                    product_frame,
+                    text="View Ratings",
+                    bg="#0984e3",
+                    fg="white",
+                    font=("Helvetica", 10, "bold")
+                )
+                view_ratings_button.grid(row=3, column=0, pady=10)
 
-    remove_button = tk.Button(cart_frame, text="Remove from Cart", command=lambda: remove_from_cart(mongo_db), bg="#d63031", fg="white", font=("Helvetica", 10, "bold"))
-    remove_button.pack(pady=5)
+            # Update the command to use the correct product_code
+            view_ratings_button.config(command=lambda: show_product_ratings(product_code))
+        else:
+            if view_ratings_button:
+                view_ratings_button.destroy()
+                view_ratings_button = None
 
-    view_cart_button = tk.Button(cart_frame, text="View Cart", command=lambda: view_cart(mongo_db), bg="#74b9ff", fg="white", font=("Helvetica", 10, "bold"))
-    view_cart_button.pack(pady=5)
+    product_dropdown.bind("<<ComboboxSelected>>", handle_dropdown_selection)
 
-    checkout_button = tk.Button(cart_frame, text="Checkout", command=lambda: checkout(mongo_db), bg="#00b894", fg="white", font=("Helvetica", 10, "bold"))
-    checkout_button.pack(pady=5)
- """
+    # Input for Cart
+    tk.Label(product_frame, text="Quantity:", bg="#f5f5f5").grid(row=4, column=0, padx=5, pady=5)
+    quantity_entry = tk.Entry(product_frame)
+    quantity_entry.grid(row=5, column=0, padx=5, pady=5)
+
+    def handle_add():
+        selected_product_name = product_dropdown.get()
+        for product in products:
+            if product[1] == selected_product_name:
+                product_code = product[0]
+                quantity = quantity_entry.get()
+                try:
+                    quantity = int(quantity)
+                    add_to_cart(product_code, quantity, cart, oracle_conn)
+                    refresh_cart()
+                except ValueError:
+                    messagebox.showerror("Error", "Quantity must be a number.")
+                break
+
+    tk.Button(
+        product_frame,
+        text="Add to Cart",
+        command=handle_add,
+        bg="#27ae60",
+        fg="white",
+        font=("Helvetica", 10, "bold")
+    ).grid(row=6, column=0, pady=10)
+
+    refresh_cart()
     main_window.mainloop()
+
 
 # Function to open the login window
 def open_login_window(root):
@@ -348,30 +476,42 @@ def open_registration_window(root):
 # Handle registration, then open the main window
 # Handle registration, then open the main window
 def handle_register(first_name_entry, last_name_entry, email_entry, phone_entry, address_entry, dob_entry, password_entry, role, registration_window, root):
-    first_name = first_name_entry.get()
-    last_name = last_name_entry.get()
-    email = email_entry.get()
-    phone = phone_entry.get()  # Capture the phone number
-    address = address_entry.get()  # Capture the address
-    dob = dob_entry.get()  # Capture the date of birth
-    password = password_entry.get()  # Capture the password
+    first_name = first_name_entry.get().strip()
+    last_name = last_name_entry.get().strip()
+    email = email_entry.get().strip()
+    phone = phone_entry.get().strip()
+    address = address_entry.get().strip()
+    dob = dob_entry.get().strip()
+    password = password_entry.get().strip()
+
+    if not (first_name and last_name and email and password and dob):
+        messagebox.showerror("Error", "Please fill in all required fields.")
+        return
 
     # Ensure oracle_conn is passed here
     success = register_user(first_name, last_name, email, phone, address, dob, password, role, oracle_conn)  # Pass role as argument
     if success:
+        messagebox.showinfo("Success", "Registration successful. You can now log in.")
         registration_window.destroy()
-        open_main_window()
-
+        root.deiconify()
+    else:
+        messagebox.showerror("Error", "Registration failed. Please try again.")
 
 # Handle login, then open the main window
 def handle_login(email_entry, password_entry, login_window, root):
-    email = email_entry.get()
-    password = password_entry.get()
+    email = email_entry.get().strip()
+    password = password_entry.get().strip()
 
-    customer_code = login_user(email, password, oracle_conn)
-    if customer_code:
+    if not (email and password):
+        messagebox.showerror("Error", "Email and Password are required.")
+        return
+
+    SystemUserCode = login_user(email, password, oracle_conn)
+    if SystemUserCode:
         login_window.destroy()
-        open_main_window()
+        open_main_window(SystemUserCode)
+    else:
+        messagebox.showerror("Error", "Invalid credentials. Please try again.")
 
 # Root window with options to go to login or registration
 root = tk.Tk()
