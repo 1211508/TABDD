@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XPTOISEP</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Estilo para centralizar a barra de pesquisa */
+        .navbar .search-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+        }
+
+        .navbar .search-container input {
+            width: 60%;
+            max-width: 500px;
+        }
+
+        .navbar .search-container button {
+            margin-left: 10px;
+        }
+
+        .navbar .auth-buttons {
+            margin-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="/">XPTOISEP</a>
+
+            <!-- Barra de pesquisa centralizada -->
+            <div class="search-container">
+                <form action="/" method="GET" class="d-flex">
+                    <input class="form-control me-2" type="search" placeholder="Pesquisar produtos..." aria-label="Pesquisar" name="search_query">
+                    <button class="btn btn-outline-success" type="submit">Pesquisar</button>
+                </form>
+            </div>
+
+            <!-- Botões de login/registro ou perfil -->
+            <div class="auth-buttons ml-auto">
+                {% if user_logged_in %}
+                    <!-- Exibe o botão de Perfil com o nome do usuário se logado -->
+                    <a href="#" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#profileModal">
+                        {{ user_name }}
+                    </a>
+                    <a href="/logout" class="btn btn-outline-danger">Sair</a>
+                {% else %}
+                    <!-- Exibe o botão Login/Cadastrar se não estiver logado -->
+                    <a href="#" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#profileModal">Login/Cadastrar</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Modal de Perfil -->
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="profileModalLabel">Informações do Usuário</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h5>{{ user_name }}</h5> <!-- Nome do usuário -->
+                    <p><strong>Email:</strong> {{ user_email }}</p> <!-- E-mail do usuário -->
+                    <p><strong>Role:</strong> {{ user_role }}</p> <!-- Role do usuário -->
+                    <p><strong>Data de Nascimento:</strong> {{ user_dob }}</p> <!-- Data de nascimento -->
+
+                    <h6>Histórico de Encomendas:</h6>
+                    <ul>
+                        {% for order in order_history %}
+                            <li>Encomenda #{{ order[0] }} - Data: {{ order[1] }} - Total: €{{ order[2] }} - Status: {{ order[3] }} - Endereço: {{ order[4] }}</li>
+                        {% else %}
+                            <li>Não há encomendas anteriores.</li>
+                        {% endfor %}
+                    </ul>
+
+                    <h6>Encomendas Ativas:</h6>
+                    <ul>
+                        {% for active_order in active_orders %}
+                            <li>Encomenda #{{ active_order[0] }} - Data: {{ active_order[1] }} - Total: €{{ active_order[2] }} - Status: {{ active_order[3] }} - Endereço: {{ active_order[4] }}</li>
+                        {% else %}
+                            <li>Não há encomendas ativas.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="container mt-4">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+</body>
+</html>
