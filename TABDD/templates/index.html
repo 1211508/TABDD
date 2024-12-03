@@ -87,12 +87,31 @@
         }
 
         /* Alinhar o título "Produtos" e os produtos mais para dentro */
+        /* Ajusta o título "Produtos" para ficar mais para dentro */
         .product-title {
-            margin-left: 50px; /* Ajustado para o título "Produtos" ficar mais para dentro */
+            margin-left: 90px; /* Aumente o valor se quiser mais para dentro */
         }
 
+        /* Ajusta as caixas de produtos para ficarem mais para dentro */
         .products-row {
-            margin-left: 30px; /* Ajusta a posição das caixas de produtos */
+            margin-left: 90px; /* Adiciona margem para as caixas de produtos */
+        }
+
+        /* Ajuste a largura das colunas dos produtos para garantir que as caixas não fiquem tão largas */
+        .col-md-3 {
+            max-width: 23%; /* Ajusta a largura das colunas dos produtos para que fiquem bem alinhados */
+            margin-right: 15px; /* Para adicionar um espaçamento entre as colunas */
+        }
+
+        /* Ajuste adicional para responsividade (se necessário) */
+        @media (max-width: 768px) {
+            .products-row {
+                margin-left: 20px;
+            }
+
+            .col-md-3 {
+                max-width: 45%; /* Para telas menores, as colunas ficam mais estreitas */
+            }
         }
 
         /* Ajuste para o menu e a palavra Produtos e Serviços descerem */
@@ -114,10 +133,13 @@
             <ul class="nav flex-column">
                 <li class="nav-item">
                     <a class="nav-link" href="#" id="productsMenu">Produtos</a>
+                    <!-- Exibe as categorias de produtos aqui -->
                     <ul class="nav flex-column ms-3" id="productsCategories" style="display:none;">
-                        <li class="nav-item"><a class="nav-link" href="#">Eletrônicos</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#">Móveis</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#">Roupas</a></li>
+                        {% for category in categories %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="/?category_id={{ category[0] }}">{{ category[1] }}</a> <!-- Redireciona com o ID da categoria -->
+                            </li>
+                        {% endfor %}
                     </ul>
                 </li>
                 <li class="nav-item">
@@ -131,6 +153,27 @@
             </ul>
         </div>
     </div>
+
+    <!-- Modal de Perfil do Usuário -->
+    <div class="modal" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="profileModalLabel">Informações do Usuário</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Nome:</strong> {{ user_name }}</p>
+                    <p><strong>Email:</strong> {{ user_email }}</p>
+                    <p><strong>Data de Nascimento:</strong> {{ user_dob }}</p>
+                    <p><strong>Role:</strong> {{ user_role }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
 
     <!-- Barra de navegação superior -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
@@ -148,38 +191,96 @@
                 <button class="btn btn-outline-success" type="submit">Pesquisar</button>
             </form>
 
-            <!-- Botões de login/registro ou perfil -->
+            <!-- Botão de Login/Cadastrar -->
             <div class="ml-auto">
                 {% if user_logged_in %}
                     <a href="#" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#profileModal">
-                        {{ user_name }}
+                        {{ user_name }} <!-- Exibe o nome do usuário -->
                     </a>
-                    <a href="/logout" class="btn btn-outline-danger">Sair</a>
+                    <a href="/logout" class="btn btn-outline-danger">Sair</a> <!-- Botão para logout -->
                 {% else %}
-                    <a href="#" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#loginModal">Login/Cadastrar</a>
+                    <a href="#" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#loginRegisterModal">Login/Cadastrar</a>
                 {% endif %}
+            </div>
+
+            <!-- Modal de Login e Registro -->
+            <div class="modal" id="loginRegisterModal" tabindex="-1" aria-labelledby="loginRegisterModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="loginRegisterModalLabel">Login ou Cadastro</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <a class="nav-link active" id="login-tab" data-bs-toggle="tab" href="#login" role="tab" aria-controls="login" aria-selected="true">Login</a>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <a class="nav-link" id="register-tab" data-bs-toggle="tab" href="#register" role="tab" aria-controls="register" aria-selected="false">Registrar</a>
+                                </li>
+                            </ul>
+                            <div class="tab-content" id="myTabContent">
+                                <!-- Formulário de Login -->
+                                <div class="tab-pane fade show active" id="login" role="tabpanel" aria-labelledby="login-tab">
+                                    <form action="/login" method="POST">
+                                        <div class="mb-3">
+                                            <label for="email" class="form-label">E-mail</label>
+                                            <input type="email" class="form-control" id="email" name="email" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="password" class="form-label">Senha</label>
+                                            <input type="password" class="form-control" id="password" name="password" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Entrar</button>
+                                    </form>
+                                </div>
+                                <!-- Formulário de Registro -->
+                                <div class="tab-pane fade" id="register" role="tabpanel" aria-labelledby="register-tab">
+                                    <form action="/register" method="POST">
+                                        <div class="mb-3">
+                                            <label for="firstName" class="form-label">Primeiro Nome</label>
+                                            <input type="text" class="form-control" id="firstName" name="firstName" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="lastName" class="form-label">Sobrenome</label>
+                                            <input type="text" class="form-control" id="lastName" name="lastName" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="email" class="form-label">E-mail</label>
+                                            <input type="email" class="form-control" id="email" name="email" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="password" class="form-label">Senha</label>
+                                            <input type="password" class="form-control" id="password" name="password" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Cadastrar</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </nav>
 
     <!-- Conteúdo principal -->
-    <div class="content">
-        <h1 class="product-title">Produtos</h1>
-        <div class="row products-row">
-            {% for product in products %}
-                <div class="col-md-3">
-                    <div class="product-card">
-                        <img src="{{ product[4] }}" class="card-img-top" alt="{{ product[1] }}">
-                        <div class="card-body">
-                            <h5 class="card-title">{{ product[1] }}</h5>
-                            <p class="card-text">{{ product[2] }}</p>
-                            <p class="card-text">€{{ product[3] }}</p>
-                            <a href="#" class="btn btn-primary">Adicionar ao Carrinho</a>
-                        </div>
+    <h1 class="product-title">Produtos</h1>
+    <div class="row products-row">
+        {% for product in products %}
+            <div class="col-md-3">
+                <div class="product-card">
+                    <img src="{{ product[4] }}" class="card-img-top" alt="{{ product[1] }}">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ product[1] }}</h5>
+                        <p class="card-text">{{ product[2] }}</p>
+                        <p class="card-text">€{{ product[3] }}</p>
+                        <a href="#" class="btn btn-primary">Adicionar ao Carrinho</a>
                     </div>
                 </div>
-            {% endfor %}
-        </div>
+            </div>
+        {% endfor %}
     </div>
 
     <!-- Bootstrap JS -->

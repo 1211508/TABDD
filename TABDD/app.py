@@ -18,12 +18,31 @@ def connect_oracle():
 # Rota principal para mostrar todos os produtos e categorias
 @app.route('/', methods=['GET'])
 def index():
+    # Verifica se o usuário está logado verificando a chave 'user_id' na sessão
+    user_logged_in = False
+    user_name = None
+    user_email = None
+    user_dob = None
+    user_role = None
+
+    if 'user_id' in session:  # Se a sessão estiver preenchida com os dados do usuário
+        user_logged_in = True
+        user_name = session.get('user_name')
+        user_email = session.get('user_email')
+        user_dob = session.get('user_dob')
+        user_role = session.get('user_role')
+
     # Obtém o termo de pesquisa (se existir)
     search_query = request.args.get('search_query', '').lower()
+    category_id = request.args.get('category_id', None)  # ID da categoria (se houver)
 
     oracle_conn = connect_oracle()
     if oracle_conn:
         cursor = oracle_conn.cursor()
+
+        # Consulta para pegar todas as categorias
+        cursor.execute("SELECT * FROM Category")
+        categories = cursor.fetchall()
 
         # Se houver um termo de pesquisa, ajusta a consulta para filtrar os produtos
         if search_query:
@@ -31,66 +50,33 @@ def index():
                 SELECT * FROM Product
                 WHERE LOWER(productName) LIKE :search_query
             """, {'search_query': f"%{search_query}%"})
+        elif category_id:
+            # Se o usuário clicar em uma categoria, filtra os produtos dessa categoria
+            cursor.execute("""
+                SELECT * FROM Product
+                WHERE categoryCode = :category_id
+            """, {'category_id': category_id})
         else:
             # Caso contrário, retorna todos os produtos
             cursor.execute("SELECT * FROM Product")
 
         products = cursor.fetchall()
 
-        cursor.execute("SELECT * FROM Category")  # Selecionando todas as categorias
-        categories = cursor.fetchall()
-
-        if 'user_id' in session:
-            # Usuário logado, recuperar dados
-            user_logged_in = True
-            user_name = session.get('user_name')
-            user_email = session.get('user_email')
-            user_role = session.get('user_role')
-            user_dob = session.get('user_dob')
-
-            # Consultar o histórico de encomendas
-            cursor.execute("""
-                SELECT ordercode, orderdate, totalamount, status, deliveryaddress
-                FROM Orders
-                WHERE SYSTEMUSERCODE = :user_id
-            """, {'user_id': session['user_id']})
-            order_history = cursor.fetchall()
-
-            # Consultar encomendas ativas
-            cursor.execute("""
-                SELECT ordercode, orderdate, totalamount, status, deliveryaddress
-                FROM Orders
-                WHERE SYSTEMUSERCODE = :user_id AND status = 'pending'
-            """, {'user_id': session['user_id']})
-            active_orders = cursor.fetchall()
-
-        else:
-            # Usuário não logado
-            user_logged_in = False
-            user_name = None
-            user_email = None
-            user_role = None
-            user_dob = None
-            order_history = []
-            active_orders = []
-
         cursor.close()
         oracle_conn.close()
 
+        # Passar os dados para o template
         return render_template('index.html', products=products, categories=categories, user_logged_in=user_logged_in, 
-                               user_name=user_name, user_email=user_email, user_role=user_role, 
-                               user_dob=user_dob, order_history=order_history, active_orders=active_orders)
+                               user_name=user_name, user_email=user_email, user_dob=user_dob, user_role=user_role)
 
     flash("Erro ao conectar ao banco de dados.", "error")
     return redirect(url_for('index'))
 
+
+
 # US02: Login de Usuário
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    # Se o usuário já estiver logado, redireciona para a página inicial
-    if 'user_id' in session:
-        return redirect(url_for('index'))  # Redireciona para a página inicial se já estiver logado
-
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
@@ -109,21 +95,16 @@ def login():
                 session['user_role'] = user[8]  # Role do usuário
                 session['user_dob'] = user[7]  # Data de nascimento do usuário
                 flash("Login realizado com sucesso!", "success")
-                return redirect(url_for('index'))  # Redireciona para a página principal após o login
+                return redirect(url_for('index'))  # Redireciona para a página principal
             else:
                 flash("E-mail ou senha incorretos.", "error")
             cursor.close()
             oracle_conn.close()
-
     return render_template('login.html')
 
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    # Se o usuário já estiver logado, redireciona para a página inicial
-    if 'user_id' in session:
-        return redirect(url_for('index'))  # Redireciona para a página inicial se já estiver logado
-
     if request.method == 'POST':
         first_name = request.form['firstName']
         last_name = request.form['lastName']
@@ -145,7 +126,7 @@ def register():
 
                 if existing_user:
                     flash("Este e-mail já está registrado. Por favor, faça o login.", "error")
-                    return redirect(url_for('login'))  # Direciona para a página de login
+                    return redirect(url_for('login'))
 
                 cursor.execute("""
                     INSERT INTO SystemUser (systemUserCode, firstName, lastName, email, phone, address, dateOfBirth, password, role)
@@ -154,7 +135,7 @@ def register():
                 
                 oracle_conn.commit()  # Confirma a transação
 
-                # Armazenando os dados do usuário na sessão
+                # Armazenando os dados na sessão
                 session['user_id'] = user_code  # Código do usuário
                 session['user_name'] = first_name  # Nome do usuário
                 session['user_email'] = email  # E-mail do usuário
@@ -162,7 +143,7 @@ def register():
                 session['user_dob'] = dob  # Data de nascimento do usuário
 
                 flash('Cadastro realizado com sucesso! Agora você pode fazer login.', 'success')
-                return redirect(url_for('index'))  # Redireciona para a página inicial após o registro
+                return redirect(url_for('index'))  # Redireciona para a página inicial
 
             except cx_Oracle.DatabaseError as e:
                 flash(f"Erro ao registrar usuário: {e}", 'error')
@@ -173,10 +154,14 @@ def register():
 
 @app.route('/logout')
 def logout():
-    session.clear()  # Limpa todas as variáveis da sessão
-    flash("Você foi deslogado.", "success")
-    return redirect(url_for('index'))  # Redireciona para a página inicial
-
+    # Limpar os dados da sessão
+    session.pop('user_id', None)
+    session.pop('user_name', None)
+    session.pop('user_email', None)
+    session.pop('user_role', None)
+    session.pop('user_dob', None)
+    flash("Você foi desconectado com sucesso!", "success")
+    return redirect(url_for('index'))  # Redireciona para a página principal
 
 if __name__ == '__main__':
     app.run(debug=True)
