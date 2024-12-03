@@ -16,30 +16,39 @@ def connect_oracle():
         return None
 
 # Rota principal para mostrar todos os produtos e categorias
-@app.route('/')
+@app.route('/', methods=['GET'])
 def index():
-    # Inicializa as variáveis
-    user_logged_in = False
-    user_name = None
-    user_email = None
-    user_role = None
-    user_dob = None
-    order_history = []
-    active_orders = []
+    # Obtém o termo de pesquisa (se existir)
+    search_query = request.args.get('search_query', '').lower()
 
-    # Se o usuário estiver logado, exibe os dados do usuário
-    if 'user_id' in session:
-        user_logged_in = True
-        user_name = session.get('user_name')
-        user_email = session.get('user_email')
-        user_role = session.get('user_role')
-        user_dob = session.get('user_dob')
+    oracle_conn = connect_oracle()
+    if oracle_conn:
+        cursor = oracle_conn.cursor()
 
-        oracle_conn = connect_oracle()
-        if oracle_conn:
-            cursor = oracle_conn.cursor()
+        # Se houver um termo de pesquisa, ajusta a consulta para filtrar os produtos
+        if search_query:
+            cursor.execute("""
+                SELECT * FROM Product
+                WHERE LOWER(productName) LIKE :search_query
+            """, {'search_query': f"%{search_query}%"})
+        else:
+            # Caso contrário, retorna todos os produtos
+            cursor.execute("SELECT * FROM Product")
 
-            # Recupera o histórico de encomendas
+        products = cursor.fetchall()
+
+        cursor.execute("SELECT * FROM Category")  # Selecionando todas as categorias
+        categories = cursor.fetchall()
+
+        if 'user_id' in session:
+            # Usuário logado, recuperar dados
+            user_logged_in = True
+            user_name = session.get('user_name')
+            user_email = session.get('user_email')
+            user_role = session.get('user_role')
+            user_dob = session.get('user_dob')
+
+            # Consultar o histórico de encomendas
             cursor.execute("""
                 SELECT ordercode, orderdate, totalamount, status, deliveryaddress
                 FROM Orders
@@ -47,7 +56,7 @@ def index():
             """, {'user_id': session['user_id']})
             order_history = cursor.fetchall()
 
-            # Encomendas ativas
+            # Consultar encomendas ativas
             cursor.execute("""
                 SELECT ordercode, orderdate, totalamount, status, deliveryaddress
                 FROM Orders
@@ -55,31 +64,25 @@ def index():
             """, {'user_id': session['user_id']})
             active_orders = cursor.fetchall()
 
-            cursor.close()
-            oracle_conn.close()
-
-    oracle_conn = connect_oracle()
-    if oracle_conn:
-        cursor = oracle_conn.cursor()
-
-        # Carregar os produtos
-        cursor.execute("SELECT * FROM Product")
-        products = cursor.fetchall()
-
-        cursor.execute("SELECT * FROM Category")
-        categories = cursor.fetchall()
+        else:
+            # Usuário não logado
+            user_logged_in = False
+            user_name = None
+            user_email = None
+            user_role = None
+            user_dob = None
+            order_history = []
+            active_orders = []
 
         cursor.close()
         oracle_conn.close()
 
-        return render_template('index.html', products=products, categories=categories, 
-                               user_logged_in=user_logged_in, user_name=user_name, 
-                               user_email=user_email, user_role=user_role, 
-                               user_dob=user_dob, order_history=order_history, 
-                               active_orders=active_orders)
+        return render_template('index.html', products=products, categories=categories, user_logged_in=user_logged_in, 
+                               user_name=user_name, user_email=user_email, user_role=user_role, 
+                               user_dob=user_dob, order_history=order_history, active_orders=active_orders)
 
     flash("Erro ao conectar ao banco de dados.", "error")
-    return redirect(url_for('index'))  # Se ocorrer algum erro ao conectar ao banco de dados
+    return redirect(url_for('index'))
 
 # US02: Login de Usuário
 @app.route('/login', methods=['GET', 'POST'])
