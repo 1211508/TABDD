@@ -1,9 +1,12 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 import cx_Oracle
 import random
+from datetime import timedelta
 
 app = Flask(__name__)
 app.secret_key = 's3cr3t'  # A chave secreta para sessões
+
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(seconds=1)
 
 # Função para conectar ao OracleDB
 def connect_oracle():
@@ -89,6 +92,7 @@ def login():
 
             if user:
                 # Armazenando os dados do usuário na sessão
+                session.permanent = False 
                 session['user_id'] = user[0]  # Código do usuário
                 session['user_name'] = user[1]  # Nome do usuário
                 session['user_email'] = user[3]  # E-mail do usuário
