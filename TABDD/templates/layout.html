@@ -57,41 +57,98 @@
         </div>
     </nav>
 
-    <!-- Modal de Perfil -->
+    <!-- Modal de Login/Registro -->
     <div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="profileModalLabel">Informações do Usuário</h5>
+                    <h5 class="modal-title" id="profileModalLabel">
+                        {% if user_logged_in %}
+                            Informações do Usuário
+                        {% else %}
+                            Login ou Cadastro
+                        {% endif %}
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <h5>{{ user_name }}</h5> <!-- Nome do usuário -->
-                    <p><strong>Email:</strong> {{ user_email }}</p> <!-- E-mail do usuário -->
-                    <p><strong>Role:</strong> {{ user_role }}</p> <!-- Role do usuário -->
-                    <p><strong>Data de Nascimento:</strong> {{ user_dob }}</p> <!-- Data de nascimento -->
+                    {% if user_logged_in %}
+                        <h5>{{ user_name }}</h5>
+                        <p><strong>Email:</strong> {{ user_email }}</p>
+                        <p><strong>Role:</strong> {{ user_role }}</p>
+                        <p><strong>Data de Nascimento:</strong> {{ user_dob }}</p>
 
-                    <h6>Histórico de Encomendas:</h6>
-                    <ul>
-                        {% for order in order_history %}
-                            <li>Encomenda #{{ order[0] }} - Data: {{ order[1] }} - Total: €{{ order[2] }} - Status: {{ order[3] }} - Endereço: {{ order[4] }}</li>
-                        {% else %}
-                            <li>Não há encomendas anteriores.</li>
-                        {% endfor %}
-                    </ul>
+                        <h6>Histórico de Encomendas:</h6>
+                        <ul>
+                            {% for order in order_history %}
+                                <li>Encomenda #{{ order[0] }} - Data: {{ order[1] }} - Total: €{{ order[2] }} - Status: {{ order[3] }} - Endereço: {{ order[4] }}</li>
+                            {% else %}
+                                <li>Não há encomendas anteriores.</li>
+                            {% endfor %}
+                        </ul>
 
-                    <h6>Encomendas Ativas:</h6>
-                    <ul>
-                        {% for active_order in active_orders %}
-                            <li>Encomenda #{{ active_order[0] }} - Data: {{ active_order[1] }} - Total: €{{ active_order[2] }} - Status: {{ active_order[3] }} - Endereço: {{ active_order[4] }}</li>
-                        {% else %}
-                            <li>Não há encomendas ativas.</li>
-                        {% endfor %}
-                    </ul>
+                        <h6>Encomendas Ativas:</h6>
+                        <ul>
+                            {% for active_order in active_orders %}
+                                <li>Encomenda #{{ active_order[0] }} - Data: {{ active_order[1] }} - Total: €{{ active_order[2] }} - Status: {{ active_order[3] }} - Endereço: {{ active_order[4] }}</li>
+                            {% else %}
+                                <li>Não há encomendas ativas.</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <ul class="nav nav-tabs" id="loginRegisterTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <a class="nav-link active" id="login-tab" data-bs-toggle="tab" href="#login" role="tab" aria-controls="login" aria-selected="true">Login</a>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <a class="nav-link" id="register-tab" data-bs-toggle="tab" href="#register" role="tab" aria-controls="register" aria-selected="false">Registrar</a>
+                            </li>
+                        </ul>
+                        <div class="tab-content" id="loginRegisterTabsContent">
+                            <!-- Formulário de Login -->
+                            <div class="tab-pane fade show active" id="login" role="tabpanel" aria-labelledby="login-tab">
+                                <form action="/login" method="POST" class="mt-3">
+                                    <div class="mb-3">
+                                        <label for="loginEmail" class="form-label">E-mail</label>
+                                        <input type="email" class="form-control" id="loginEmail" name="email" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="loginPassword" class="form-label">Senha</label>
+                                        <input type="password" class="form-control" id="loginPassword" name="password" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Entrar</button>
+                                </form>
+                            </div>
+
+                            <!-- Formulário de Registro -->
+                            <div class="tab-pane fade" id="register" role="tabpanel" aria-labelledby="register-tab">
+                                <form action="/register" method="POST" class="mt-3">
+                                    <div class="mb-3">
+                                        <label for="registerFirstName" class="form-label">Primeiro Nome</label>
+                                        <input type="text" class="form-control" id="registerFirstName" name="firstName" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="registerLastName" class="form-label">Sobrenome</label>
+                                        <input type="text" class="form-control" id="registerLastName" name="lastName" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="registerEmail" class="form-label">E-mail</label>
+                                        <input type="email" class="form-control" id="registerEmail" name="email" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="registerPassword" class="form-label">Senha</label>
+                                        <input type="password" class="form-control" id="registerPassword" name="password" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Registrar</button>
+                                </form>
+                            </div>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
+
     <div class="container mt-4">
         {% block content %}
         {% endblock %}
