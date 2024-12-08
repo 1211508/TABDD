@@ -42,35 +42,11 @@ header nav .nav-links a {
     font-size: 18px;
 }
 
-/* Hero Section */
-.hero {
-    text-align: center;
-    background: #3498db;
-    color: white;
-    padding: 60px 20px;
-}
-
-.hero h1 {
-    font-size: 50px;
-    margin-bottom: 20px;
-}
-
-.hero .btn {
-    background-color: #e67e22;
-    color: white;
-    padding: 15px 30px;
-    text-decoration: none;
-    border-radius: 5px;
-}
-
-.hero .btn:hover {
-    background-color: #d35400;
-}
-
-/* Product Gallery */
+/* Galeria de Produtos */
 .products {
-    padding: 40px 20px;
     text-align: center;
+    margin: 0 auto;
+    max-width: 90%; /* Limita a largura para centralizar */
 }
 
 .products h2 {
@@ -80,18 +56,20 @@ header nav .nav-links a {
 
 .product-container {
     display: flex;
-    justify-content: center;
-    gap: 20px;
+    justify-content: center; 
     flex-wrap: wrap;
+    gap: 5px; /* Reduzido o espaço entre os cards para 5px */
+    margin-left: 0;
+    margin-right: 0;
 }
 
 .product-card {
+    width: 200px; /* Tamanho fixo para garantir que os cards fiquem mais próximos */
     background: white;
-    padding: 20px;
-    width: 250px;
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     text-align: center;
+    margin-bottom: 10px; /* Espaço entre as linhas */
 }
 
 .product-card img {
@@ -111,16 +89,18 @@ header nav .nav-links a {
 }
 
 .product-card .btn {
-    background-color: #27ae60;
+    background-color: #e74c3c; /* Cor vermelha */
     color: white;
-    padding: 10px 20px;
+    padding: 8px 16px; /* Reduz o tamanho do botão */
     text-decoration: none;
     border-radius: 5px;
 }
 
 .product-card .btn:hover {
-    background-color: #2ecc71;
+    background-color: #c0392b; /* Cor vermelha mais escura no hover */
 }
+
+
 
 /* Footer */
 footer {
@@ -137,10 +117,83 @@ footer p {
     font-size: 16px;
 }
 
-/* Media Queries */
+/* Sidebar */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: -250px; /* Inicialmente escondido */
+    height: 100%;
+    width: 250px;
+    background-color: #f8f9fa;
+    padding-top: 80px; /* Ajustado para o ícone do menu ficar mais abaixo */
+    transition: left 0.3s ease-in-out, top 0.3s ease-in-out;
+}
+
+.sidebar.show {
+    left: 0;
+    top: 60px; /* Ajuste ao abrir */
+}
+
+.sidebar .nav-link {
+    color: #333;
+}
+
+.sidebar .nav-link:hover {
+    background-color: #ddd;
+}
+
+/* Ícone de menu */
+.menu-toggle {
+    font-size: 30px;
+    cursor: pointer;
+    position: absolute;
+    top: 10px; /* Ajuste para posicionar melhor */
+    left: 10px;
+    z-index: 1001;
+}
+
+/* Barra de navegação superior */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-left: 20px;
+}
+
+/* Estilos para o popup de login */
+.modal-content {
+    padding: 20px;
+}
+
+.search-bar {
+    width: 300px;
+}
+
+/* Ajustes gerais no conteúdo */
+.content {
+    padding: 20px;
+    transition: margin-left 0.3s ease;
+    margin-left: 20px;
+}
+
+.content.shift {
+    margin-left: 250px;
+}
+
+/* Estilo das colunas dos produtos */
+.col-md-3 {
+    max-width: 23%;
+    margin-right: 15px;
+}
+
+/* Ajuste da barra de navegação para dispositivos móveis */
 @media (max-width: 768px) {
-    .hero h1 {
-        font-size: 40px;
+    .sidebar {
+        width: 200px;
+    }
+
+    .menu-toggle {
+        top: 30px; /* Ajusta o ícone para aparecer mais para cima */
     }
 
     .product-container {
@@ -150,6 +203,43 @@ footer p {
 
     .product-card {
         width: 100%;
-        margin-bottom: 20px;
+        margin-bottom: 5px;
+    }
+
+    .products-row {
+        margin-left: 5px;
     }
 }
+
+/* Centraliza a paginação */
+.pagination {
+    display: flex;
+    justify-content: center; /* Centraliza os itens na paginação */
+    margin-top: 20px; /* Adiciona espaço acima da paginação */
+    font-size: 16px; /* Ajusta o tamanho da fonte */
+}
+
+.pagination a {
+    margin: 0 10px; /* Adiciona espaço entre os links de paginação */
+    text-decoration: none; /* Remove o sublinhado dos links */
+    color: #007bff; /* Cor dos links */
+}
+
+.pagination a:hover {
+    text-decoration: underline; /* Adiciona o sublinhado quando o mouse passa sobre o link */
+}
+
+.pagination span {
+    margin: 0 10px; /* Adiciona espaço entre o texto da página */
+}
+
+/* Estilo para subcategorias */
+#productsCategories, #servicesCategories {
+    display: none;
+}
+
+#productsCategories li {
+    margin-left: 20px; /* Adiciona um indentação para as subcategorias */
+}
+
+

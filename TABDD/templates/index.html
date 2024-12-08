@@ -6,124 +6,7 @@
     <title>XPTOISEP</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        /* Estilo da Sidebar */
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: -250px; /* Inicialmente escondido */
-            height: 100%;
-            width: 250px;
-            background-color: #f8f9fa;
-            padding-top: 100px; /* Ajustado para o ícone do menu ficar mais abaixo */
-            transition: left 0.3s ease-in-out, top 0.3s ease-in-out; /* Adicionando transição para o movimento vertical */
-        }
-
-        .sidebar.show {
-            left: 0; /* Quando aberto, move a sidebar para a tela */
-            top: 60px; /* Quando a sidebar for aberta, move o conteúdo para baixo */
-        }
-
-        .sidebar .nav-link {
-            color: #333;
-        }
-
-        .sidebar .nav-link:hover {
-            background-color: #ddd;
-        }
-
-        /* Ícone de menu */
-        .menu-toggle {
-            font-size: 30px;
-            cursor: pointer;
-            position: absolute;
-            top: 80px; /* Ajustado para o ícone ficar mais para baixo */
-            left: 10px;
-            z-index: 1001; /* Coloca o ícone na frente da sidebar */
-        }
-
-        /* Barra de navegação superior */
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-left: 20px;
-            transition: margin-left 0.3s ease;
-        }
-
-        /* Ajuste do conteúdo para que a sidebar não se sobreponha */
-        .content {
-            padding: 20px;
-            transition: margin-left 0.3s ease;
-            margin-left: 20px; /* Ajusta o espaçamento à esquerda */
-        }
-
-        .content.shift {
-            margin-left: 250px;
-        }
-
-        /* Estilo das caixas de produtos */
-        .product-card {
-            margin: 15px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .product-card img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 5px;
-        }
-
-        .product-card .card-body {
-            padding: 15px;
-        }
-
-        /* Barra de pesquisa */
-        .search-bar {
-            width: 300px;
-        }
-
-        /* Alinhar o título "Produtos" e os produtos mais para dentro */
-        /* Ajusta o título "Produtos" para ficar mais para dentro */
-        .product-title {
-            margin-left: 90px; /* Aumente o valor se quiser mais para dentro */
-        }
-
-        /* Ajusta as caixas de produtos para ficarem mais para dentro */
-        .products-row {
-            margin-left: 90px; /* Adiciona margem para as caixas de produtos */
-        }
-
-        /* Ajuste a largura das colunas dos produtos para garantir que as caixas não fiquem tão largas */
-        .col-md-3 {
-            max-width: 23%; /* Ajusta a largura das colunas dos produtos para que fiquem bem alinhados */
-            margin-right: 15px; /* Para adicionar um espaçamento entre as colunas */
-        }
-
-        /* Ajuste adicional para responsividade (se necessário) */
-        @media (max-width: 768px) {
-            .products-row {
-                margin-left: 20px;
-            }
-
-            .col-md-3 {
-                max-width: 45%; /* Para telas menores, as colunas ficam mais estreitas */
-            }
-        }
-
-        /* Ajuste para o menu e a palavra Produtos e Serviços descerem */
-        .sidebar .nav-link {
-            transition: margin-top 0.3s ease;
-        }
-
-        .sidebar.show .nav-link {
-            margin-top: 30px; /* Move as palavras Produtos e Serviços para baixo */
-        }
-
-    </style>
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
     <!-- Menu Lateral -->
@@ -133,11 +16,21 @@
             <ul class="nav flex-column">
                 <li class="nav-item">
                     <a class="nav-link" href="#" id="productsMenu">Produtos</a>
-                    <!-- Exibe as categorias de produtos aqui -->
+                    <!-- Exibe as categorias e subcategorias aqui -->
                     <ul class="nav flex-column ms-3" id="productsCategories" style="display:none;">
                         {% for category in categories %}
                             <li class="nav-item">
-                                <a class="nav-link" href="/?category_id={{ category[0] }}">{{ category[1] }}</a> <!-- Redireciona com o ID da categoria -->
+                                <a class="nav-link" href="/?category_id={{ category[0] }}">{{ category[1] }}</a>
+                                <!-- Exibir subcategorias dentro de cada categoria -->
+                                <ul class="nav flex-column ms-3" id="subcategories-{{ category[0] }}" style="display:none;">
+                                    {% for subcategory in subcategories %}
+                                        {% if subcategory[3] == category[0] %}
+                                            <li class="nav-item">
+                                                <a class="nav-link" href="/?subcategory_id={{ subcategory[0] }}">{{ subcategory[1] }}</a>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                </ul>
                             </li>
                         {% endfor %}
                     </ul>
@@ -154,133 +47,91 @@
         </div>
     </div>
 
-    <!-- Modal de Perfil do Usuário -->
-    <div class="modal" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="profileModalLabel">Informações do Usuário</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p><strong>Nome:</strong> {{ user_name }}</p>
-                    <p><strong>Email:</strong> {{ user_email }}</p>
-                    <p><strong>Data de Nascimento:</strong> {{ user_dob }}</p>
-                    <p><strong>Role:</strong> {{ user_role }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-
+    <!-- Ícone de Menu -->
+    <button class="btn btn-outline-primary menu-toggle" id="menuToggle">&#9776;</button>
 
     <!-- Barra de navegação superior -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
             <a class="navbar-brand" href="/">XPTOISEP</a>
-
-            <!-- Botão do Menu (ícone) -->
-            <button class="btn btn-outline-primary menu-toggle" id="menuToggle">
-                &#9776;
-            </button>
-
             <!-- Barra de pesquisa -->
             <form class="d-flex search-bar" action="/" method="GET">
                 <input class="form-control me-2" type="search" placeholder="Pesquisar produtos" aria-label="Pesquisar" name="search_query">
                 <button class="btn btn-outline-success" type="submit">Pesquisar</button>
             </form>
 
-            <!-- Botão de Login/Cadastrar -->
+            <!-- Login/Cadastro ou Nome do Usuário -->
             <div class="ml-auto">
                 {% if user_logged_in %}
                     <a href="#" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#profileModal">
-                        {{ user_name }} <!-- Exibe o nome do usuário -->
+                        {{ user_name }}
                     </a>
-                    <a href="/logout" class="btn btn-outline-danger">Sair</a> <!-- Botão para logout -->
+                    <a href="/logout" class="btn btn-outline-danger">Sair</a>
                 {% else %}
                     <a href="#" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#loginRegisterModal">Login/Cadastrar</a>
                 {% endif %}
             </div>
-
-            <!-- Modal de Login e Registro -->
-            <div class="modal" id="loginRegisterModal" tabindex="-1" aria-labelledby="loginRegisterModalLabel" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="loginRegisterModalLabel">Login ou Cadastro</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <ul class="nav nav-tabs" id="myTab" role="tablist">
-                                <li class="nav-item" role="presentation">
-                                    <a class="nav-link active" id="login-tab" data-bs-toggle="tab" href="#login" role="tab" aria-controls="login" aria-selected="true">Login</a>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <a class="nav-link" id="register-tab" data-bs-toggle="tab" href="#register" role="tab" aria-controls="register" aria-selected="false">Registrar</a>
-                                </li>
-                            </ul>
-                            <div class="tab-content" id="myTabContent">
-                                <!-- Formulário de Login -->
-                                <div class="tab-pane fade show active" id="login" role="tabpanel" aria-labelledby="login-tab">
-                                    <form action="/login" method="POST">
-                                        <div class="mb-3">
-                                            <label for="email" class="form-label">E-mail</label>
-                                            <input type="email" class="form-control" id="email" name="email" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="password" class="form-label">Senha</label>
-                                            <input type="password" class="form-control" id="password" name="password" required>
-                                        </div>
-                                        <button type="submit" class="btn btn-primary">Entrar</button>
-                                    </form>
-                                </div>
-                                <!-- Formulário de Registro -->
-                                <div class="tab-pane fade" id="register" role="tabpanel" aria-labelledby="register-tab">
-                                    <form action="/register" method="POST">
-                                        <div class="mb-3">
-                                            <label for="firstName" class="form-label">Primeiro Nome</label>
-                                            <input type="text" class="form-control" id="firstName" name="firstName" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="lastName" class="form-label">Sobrenome</label>
-                                            <input type="text" class="form-control" id="lastName" name="lastName" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="email" class="form-label">E-mail</label>
-                                            <input type="email" class="form-control" id="email" name="email" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="password" class="form-label">Senha</label>
-                                            <input type="password" class="form-control" id="password" name="password" required>
-                                        </div>
-                                        <button type="submit" class="btn btn-primary">Cadastrar</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </nav>
 
-    <!-- Conteúdo principal -->
+    <!-- Exibição dos produtos -->
     <h1 class="product-title">Produtos</h1>
     <div class="row products-row">
         {% for product in products %}
             <div class="col-md-3">
                 <div class="product-card">
-                    <img src="{{ product[4] }}" class="card-img-top" alt="{{ product[1] }}">
+                    <img src="{{ product[4] }}" class="card-img-top" alt="{{ product[1] }}"/>
                     <div class="card-body">
                         <h5 class="card-title">{{ product[1] }}</h5>
                         <p class="card-text">{{ product[2] }}</p>
                         <p class="card-text">€{{ product[3] }}</p>
-                        <a href="#" class="btn btn-primary">Adicionar ao Carrinho</a>
+                        <!-- Botão para abrir o modal -->
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#productModal" 
+                                data-product-id="{{ product[0] }}">
+                            Ver Detalhes
+                        </button>
                     </div>
                 </div>
             </div>
         {% endfor %}
+    </div>
+
+    <!-- Modal de Detalhes do Produto -->
+    <div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="productModalLabel">Detalhes do Produto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Produto Info -->
+                    <p><strong>Categoria:</strong> <span id="product-category"></span></p> <!-- Categoria -->
+                    <p><strong>Preço:</strong> €<span id="product-price"></span></p> <!-- Preço -->
+                    <p><strong>Fornecedor:</strong> <span id="product-supplier"></span></p> <!-- Fornecedor -->
+                    <p><strong>Quantidade em Estoque:</strong> <span id="product-stock"></span></p> <!-- Quantidade -->
+
+                    <!-- Exibindo as classificações -->
+                    <h3>Avaliações:</h3>
+                    <ul id="product-ratings">
+                        <!-- As avaliações serão preenchidas aqui via JavaScript -->
+                    </ul>
+                    
+                    <p><strong>Atributos Físicos:</strong></p>
+                    <ul id="product-attributes">
+                        <!-- Atributos físicos do produto -->
+                    </ul>
+
+                    <p><strong>Atributos Técnicos:</strong></p>
+                    <ul id="product-tech-attributes">
+                        <!-- Atributos técnicos do produto -->
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Bootstrap JS -->
@@ -288,23 +139,51 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
 
     <script>
-        // Mostrar/Esconder a sidebar com efeito de deslizar
-        document.getElementById("menuToggle").addEventListener("click", function() {
-            document.getElementById("sidebar").classList.toggle("show");
-            document.querySelector(".content").classList.toggle("shift");
-            document.querySelector(".navbar").classList.toggle("shift");
-        });
+        // Passar os dados do produto para o modal
+        const productModal = document.getElementById('productModal');
+        productModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const productId = button.getAttribute('data-product-id');
+            
+            // Aqui você pode fazer a requisição AJAX para buscar os dados completos do produto
+            fetch(`/product_details/${productId}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Atualizar o modal com os dados do produto
+                    document.getElementById('product-category').textContent = data.categoryName;
+                    document.getElementById('product-price').textContent = data.price;
+                    document.getElementById('product-supplier').textContent = data.supplier;
+                    document.getElementById('product-stock').textContent = data.stock;
 
-        // Mostrar subcategorias de produtos
-        document.getElementById("productsMenu").addEventListener("click", function() {
-            document.getElementById("productsCategories").style.display = 
-                document.getElementById("productsCategories").style.display === "none" ? "block" : "none";
-        });
+                    // Preencher as avaliações
+                    let ratingsList = document.getElementById('product-ratings');
+                    ratingsList.innerHTML = "";
+                    data.ratings.forEach(rating => {
+                        const ratingItem = document.createElement('li');
+                        ratingItem.textContent = `Nota: ${rating.rating}, Comentário: ${rating.comment} - Cliente: ${rating.user.name}`;
+                        ratingsList.appendChild(ratingItem);
+                    });
 
-        // Mostrar subcategorias de serviços
-        document.getElementById("servicesMenu").addEventListener("click", function() {
-            document.getElementById("servicesCategories").style.display = 
-                document.getElementById("servicesCategories").style.display === "none" ? "block" : "none";
+                    // Preencher todos os atributos físicos
+                    let productAttributes = document.getElementById('product-attributes');
+                    productAttributes.innerHTML = `
+                        <li><strong>Cor:</strong> ${data.physicalAttributes.color}</li>
+                        <li><strong>Peso:</strong> ${data.physicalAttributes.weight} kg</li>
+                        <li><strong>Altura:</strong> ${data.physicalAttributes.height} cm</li>
+                        <li><strong>Largura:</strong> ${data.physicalAttributes.width} cm</li>
+                        <li><strong>Profundidade:</strong> ${data.physicalAttributes.depth} cm</li>
+                    `;
+
+                    // Preencher os atributos técnicos
+                    let productTechAttributes = document.getElementById('product-tech-attributes');
+                    productTechAttributes.innerHTML = `
+                        <li><strong>Processador:</strong> ${data.technicalAttributes.processor}</li>
+                        <li><strong>RAM:</strong> ${data.technicalAttributes.ram}</li>
+                        <li><strong>Armazenamento:</strong> ${data.technicalAttributes.storage}</li>
+                        <li><strong>Vida da Bateria:</strong> ${data.technicalAttributes.batteryLife}</li>
+                        <li><strong>Garantia:</strong> ${data.technicalAttributes.warranty}</li>
+                    `;
+                });
         });
     </script>
 </body>
