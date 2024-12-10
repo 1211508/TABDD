@@ -68,11 +68,120 @@
                     </a>
                     <a href="/logout" class="btn btn-outline-danger">Sair</a>
                 {% else %}
+                    <!-- Login/Cadastro modal trigger -->
                     <a href="#" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#loginRegisterModal">Login/Cadastrar</a>
                 {% endif %}
+                    <!-- Botão de visualizar o carrinho -->
+                <a href="#" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#cartModal">
+                    Ver Carrinho
+                </a>
             </div>
         </div>
     </nav>
+
+    <!-- Modal de Login e Registro -->
+    <div class="modal fade" id="loginRegisterModal" tabindex="-1" aria-labelledby="loginRegisterModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="loginRegisterModalLabel">Login ou Cadastro</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs" id="myTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link active" id="login-tab" data-bs-toggle="tab" href="#login" role="tab" aria-controls="login" aria-selected="true">Login</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link" id="register-tab" data-bs-toggle="tab" href="#register" role="tab" aria-controls="register" aria-selected="false">Registrar</a>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="myTabContent">
+                        <!-- Formulário de Login -->
+                        <div class="tab-pane fade show active" id="login" role="tabpanel" aria-labelledby="login-tab">
+                            <form action="/login" method="POST">
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">E-mail</label>
+                                    <input type="email" class="form-control" id="email" name="email" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">Senha</label>
+                                    <input type="password" class="form-control" id="password" name="password" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Entrar</button>
+                            </form>
+                        </div>
+
+                        <!-- Formulário de Registro -->
+                        <div class="tab-pane fade" id="register" role="tabpanel" aria-labelledby="register-tab">
+                            <form action="/register" method="POST">
+                                <div class="mb-3">
+                                    <label for="firstName" class="form-label">Primeiro Nome</label>
+                                    <input type="text" class="form-control" id="firstName" name="firstName" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="lastName" class="form-label">Sobrenome</label>
+                                    <input type="text" class="form-control" id="lastName" name="lastName" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">E-mail</label>
+                                    <input type="email" class="form-control" id="email" name="email" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">Senha</label>
+                                    <input type="password" class="form-control" id="password" name="password" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="phone" class="form-label">Telefone</label>
+                                    <input type="text" class="form-control" id="phone" name="phone">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="address" class="form-label">Endereço</label>
+                                    <input type="text" class="form-control" id="address" name="address">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="dob" class="form-label">Data de Nascimento</label>
+                                    <input type="date" class="form-control" id="dob" name="dob" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="role" class="form-label">Selecione o Papel</label>
+                                    <select class="form-select" id="role" name="role" required>
+                                        <option value="customer">Cliente</option>
+                                        <option value="manager">Gerente</option>
+                                        <option value="warehouse manager">Gerente de Armazém</option>
+                                        <option value="delivery order manager">Gerente de Pedidos de Entrega</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Registrar</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para selecionar a quantidade -->
+    <div class="modal fade" id="quantityModal" tabindex="-1" aria-labelledby="quantityModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="quantityModalLabel">Escolha a Quantidade</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="quantityForm">
+                        <input type="number" id="quantity" name="quantity" min="1" value="1" class="form-control" required>
+                        <input type="hidden" id="product_id" name="product_id">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-primary" id="addToCartBtn">Adicionar ao Carrinho</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Exibição dos produtos -->
     <h1 class="product-title">Produtos</h1>
@@ -80,21 +189,73 @@
         {% for product in products %}
             <div class="col-md-3">
                 <div class="product-card">
-                    <img src="{{ product[4] }}" class="card-img-top" alt="{{ product[1] }}"/>
+                    <img src="{{ product['productImage'] | default('image_url_default') }}" class="card-img-top" alt="{{ product['productName'] }}"/>
                     <div class="card-body">
-                        <h5 class="card-title">{{ product[1] }}</h5>
-                        <p class="card-text">{{ product[2] }}</p>
-                        <p class="card-text">€{{ product[3] }}</p>
-                        <!-- Botão para abrir o modal -->
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#productModal" 
-                                data-product-id="{{ product[0] }}">
-                            Ver Detalhes
+                        <h5 class="card-title">{{ product['productName'] }}</h5>
+                        <p class="card-text">€{{ product['price'] }}</p>
+                        <!-- Botão de adicionar ao carrinho -->
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#quantityModal" data-product-id="{{ product['productCode'] }}">
+                            Adicionar ao Carrinho
                         </button>
                     </div>
                 </div>
             </div>
         {% endfor %}
     </div>
+
+    <!-- Paginador para navegar entre as páginas -->
+    <div class="d-flex justify-content-center mt-4">
+        <ul class="pagination">
+            {% if page_number > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_number - 1 }}" aria-label="Anterior">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">&laquo;</span>
+                </li>
+            {% endif %}
+            
+            <!-- Exibe o número da página atual e as opções de navegação -->
+            <li class="page-item active">
+                <span class="page-link">{{ page_number }}</span>
+            </li>
+
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_number + 1 }}" aria-label="Próxima">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+    
+
+    <!-- Modal do Carrinho -->
+    <div class="modal fade" id="cartModal" tabindex="-1" aria-labelledby="cartModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="cartModalLabel">Carrinho de Compras</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+            <div id="cartItems">
+                <p>Carregando seu carrinho...</p>
+            </div>
+            <div id="cartTotal">
+                <p>Total: €0.00</p>
+            </div>
+            </div>
+            <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            <button type="button" class="btn btn-primary">Finalizar Compra</button>
+            </div>
+        </div>
+        </div>
+    </div>
+
 
     <!-- Modal de Detalhes do Produto -->
     <div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
@@ -105,26 +266,37 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Produto Info -->
-                    <p><strong>Categoria:</strong> <span id="product-category"></span></p> <!-- Categoria -->
-                    <p><strong>Preço:</strong> €<span id="product-price"></span></p> <!-- Preço -->
-                    <p><strong>Fornecedor:</strong> <span id="product-supplier"></span></p> <!-- Fornecedor -->
-                    <p><strong>Quantidade em Estoque:</strong> <span id="product-stock"></span></p> <!-- Quantidade -->
+                    <p><strong>Categoria:</strong> <span id="product-category"></span></p>
+                    <p><strong>Preço:</strong> <span id="product-price"></span></p>
+                    <p><strong>Fornecedor:</strong> <span id="product-supplier"></span></p>
+                    <p><strong>Quantidade em Estoque:</strong> <span id="product-stock"></span></p>
 
-                    <!-- Exibindo as classificações -->
-                    <h3>Avaliações:</h3>
-                    <ul id="product-ratings">
-                        <!-- As avaliações serão preenchidas aqui via JavaScript -->
-                    </ul>
-                    
                     <p><strong>Atributos Físicos:</strong></p>
-                    <ul id="product-attributes">
-                        <!-- Atributos físicos do produto -->
-                    </ul>
+                    <ul id="product-attributes"></ul>
 
                     <p><strong>Atributos Técnicos:</strong></p>
-                    <ul id="product-tech-attributes">
-                        <!-- Atributos técnicos do produto -->
+                    <ul id="product-tech-attributes"></ul>
+
+                    <!-- Botão para abrir o modal das avaliações -->
+                    <button class="btn btn-info" id="show-reviews-btn" data-product-id="" data-bs-toggle="modal" data-bs-target="#reviewsModal">
+                        Ver Avaliações
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal das Avaliações -->
+    <div class="modal fade" id="reviewsModal" tabindex="-1" aria-labelledby="reviewsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reviewsModalLabel">Avaliações do Produto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul id="product-ratings-list">
+                        <li>Não há avaliações para este produto.</li>
                     </ul>
                 </div>
                 <div class="modal-footer">
@@ -134,7 +306,10 @@
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap JS e Popper -->
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
 
@@ -151,19 +326,10 @@
                 .then(data => {
                     // Atualizar o modal com os dados do produto
                     document.getElementById('product-category').textContent = data.categoryName;
-                    document.getElementById('product-price').textContent = data.price;
+                    document.getElementById('product-price').textContent = `€${data.price}`;
                     document.getElementById('product-supplier').textContent = data.supplier;
                     document.getElementById('product-stock').textContent = data.stock;
-
-                    // Preencher as avaliações
-                    let ratingsList = document.getElementById('product-ratings');
-                    ratingsList.innerHTML = "";
-                    data.ratings.forEach(rating => {
-                        const ratingItem = document.createElement('li');
-                        ratingItem.textContent = `Nota: ${rating.rating}, Comentário: ${rating.comment} - Cliente: ${rating.user.name}`;
-                        ratingsList.appendChild(ratingItem);
-                    });
-
+    
                     // Preencher todos os atributos físicos
                     let productAttributes = document.getElementById('product-attributes');
                     productAttributes.innerHTML = `
@@ -173,7 +339,7 @@
                         <li><strong>Largura:</strong> ${data.physicalAttributes.width} cm</li>
                         <li><strong>Profundidade:</strong> ${data.physicalAttributes.depth} cm</li>
                     `;
-
+    
                     // Preencher os atributos técnicos
                     let productTechAttributes = document.getElementById('product-tech-attributes');
                     productTechAttributes.innerHTML = `
@@ -183,8 +349,180 @@
                         <li><strong>Vida da Bateria:</strong> ${data.technicalAttributes.batteryLife}</li>
                         <li><strong>Garantia:</strong> ${data.technicalAttributes.warranty}</li>
                     `;
+    
+                    // Atualizar o id do produto no botão de avaliações
+                    document.getElementById('show-reviews-btn').setAttribute('data-product-id', productId);
                 });
         });
-    </script>
+    
+        document.addEventListener('DOMContentLoaded', function () {
+            let selectedProductId = null;
+
+            // Abre o modal e armazena o ID do produto no botão
+            const addToCartButtons = document.querySelectorAll('[data-bs-target="#quantityModal"]');
+            addToCartButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    selectedProductId = button.getAttribute('data-product-id');
+                    // Defina o ID do produto no campo oculto do formulário no modal
+                    document.getElementById('product_id').value = selectedProductId;
+                });
+            });
+
+            // Submissão do formulário do modal
+            const quantityForm = document.getElementById('quantityForm');
+            quantityForm.addEventListener('submit', function (event) {
+                event.preventDefault();  // Previne o comportamento padrão do formulário
+
+                const quantity = document.getElementById('quantity').value;
+
+                // Verifique se a quantidade é válida
+                if (quantity < 1) {
+                    alert("Por favor, selecione uma quantidade válida.");
+                    return;
+                }
+
+                // Enviar os dados para o backend
+                fetch('/add_to_cart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        product_id: productId,
+                        quantity: quantity
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Produto adicionado ao carrinho!');
+                        // Fechar o modal após a adição ao carrinho
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('quantityModal'));
+                        modal.hide();
+                        location.reload();  // Atualiza a página para refletir as mudanças no carrinho
+                    } else {
+                        alert('Erro ao adicionar ao carrinho: ' + data.message);  // Exibe mensagem detalhada
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Erro ao adicionar ao carrinho.');
+                });
+            });
+        });
+        // Lógica para exibir o popup de avaliações
+        const reviewsBtn = document.getElementById('show-reviews-btn');
+        reviewsBtn.addEventListener('click', function() {
+            const productId = reviewsBtn.getAttribute('data-product-id'); // ID do produto
+            fetch(`/get_reviews/${productId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const reviewsList = document.getElementById('product-ratings-list');
+                    reviewsList.innerHTML = ''; // Limpa a lista antes de preencher
+    
+                    if (data.reviews.length > 0) {
+                        data.reviews.forEach(review => {
+                            const reviewItem = document.createElement('li');
+                            reviewItem.textContent = `Nota: ${review.rating}, Comentário: ${review.comment} - Cliente: ${review.user.name}`;
+                            reviewsList.appendChild(reviewItem);
+                        });
+                    } else {
+                        reviewsList.innerHTML = "<li>Não há avaliações para este produto.</li>";
+                    }
+                })
+                .catch(err => {
+                    console.error('Erro ao carregar as avaliações:', err);
+                });
+        });
+        const addToCartButtons = document.querySelectorAll('.btn-success');
+        addToCartButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Pega o ID do produto
+                const productId = this.getAttribute('data-product-id');
+                
+                // Define o ID do produto no campo oculto do formulário no modal
+                document.getElementById('product_id').value = productId;
+            });
+        });
+        document.getElementById('cartModal').addEventListener('show.bs.modal', function () {
+            // Fazer a requisição para obter os dados do carrinho
+            fetch('/cart_data')  // Modifique esta URL conforme a sua rota
+                .then(response => response.json())
+                .then(data => {
+                    // Preencher os itens do carrinho no modal
+                    let cartItems = data.items;
+                    let cartTotal = data.total_amount;
+
+                    let cartItemsContainer = document.getElementById('cartItems');
+                    cartItemsContainer.innerHTML = "";  // Limpa os itens anteriores
+
+                    if (cartItems.length === 0) {
+                        cartItemsContainer.innerHTML = "<p>Seu carrinho está vazio.</p>";
+                    } else {
+                        cartItems.forEach(item => {
+                            let itemHTML = `
+                                <div class="row">
+                                    <div class="col-md-8">${item.productName}</div>
+                                    <div class="col-md-2">€${item.price}</div>
+                                    <div class="col-md-2">${item.quantity}</div>
+                                </div>
+                            `;
+                            cartItemsContainer.innerHTML += itemHTML;
+                        });
+                    }
+
+                    // Atualizar o total do carrinho
+                    let totalHTML = `<p>Total: €${cartTotal}</p>`;
+                    document.getElementById('cartTotal').innerHTML = totalHTML;
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar carrinho:', error);
+                });
+        });
+
+
+        // Quando o botão de adicionar no modal for clicado
+        document.getElementById('addToCartBtn').addEventListener('click', function() {
+            const productId = document.getElementById('product_id').value;
+            const quantity = document.getElementById('quantity').value;
+
+            console.log("Produto ID:", productId);  // Confirmação dos dados
+            console.log("Quantidade:", quantity);
+
+            // Verifique se a quantidade é válida
+            if (quantity < 1) {
+                alert("Por favor, selecione uma quantidade válida.");
+                return;
+            }
+
+            // Enviar os dados para o backend
+            fetch('/add_to_cart', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    product_id: productId,
+                    quantity: quantity
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Produto adicionado ao carrinho!');
+                    // Fechar o modal após a adição ao carrinho
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('quantityModal'));
+                    modal.hide();
+                    location.reload();  // Atualiza a página para refletir as mudanças no carrinho
+                } else {
+                    alert('Erro ao adicionar ao carrinho: ' + data.message);  // Exibe mensagem detalhada
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao adicionar ao carrinho.');
+            });
+        });
+    </script>            
 </body>
 </html>

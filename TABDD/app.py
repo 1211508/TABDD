@@ -8,9 +8,11 @@ app = Flask(__name__)
 app.secret_key = 's3cr3t'  # A chave secreta para sessões
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)
 
-mongo_client = MongoClient("mongodb://localhost:27017/")
-db = mongo_client['shop']
-product_ratings_collection = db['product_rating']
+mongo_client = MongoClient("mongodb://mongoadmin:501c74327eb2366e9b961350@vsgate-s1.dei.isep.ipp.pt:10385/")
+db = mongo_client['TABDD_NOSQL']
+db_2 = mongo_client['TABDD_CART']
+product_ratings_collection = db['productRating']
+
 
 # Função para conectar ao OracleDB
 def connect_oracle():
@@ -46,41 +48,8 @@ def calculate_cart_total(cart_items):
         total += item['price'] * item['quantity']
     return total
 
-# Rota para visualizar o carrinho de compras
-@app.route('/cart', methods=['GET', 'POST'])
-def cart():
-    # Aqui vamos pegar os itens do carrinho, que podem estar na sessão
-    cart_items = session.get('cart', [])
-    total_price = calculate_cart_total(cart_items)
-
-    # Se o carrinho ultrapassar €2000, não permitimos adicionar mais itens
-    if total_price > 2000:
-        flash("O valor total do carrinho não pode exceder €2000.", "error")
-    
-    # Se o usuário tentar adicionar um produto
-    if request.method == 'POST':
-        product_code = request.form['product_code']
-        product_name = request.form['product_name']
-        price = float(request.form['price'])
-        quantity = int(request.form['quantity'])
-        
-        # Verificando o valor total do carrinho após adicionar este item
-        new_total_price = total_price + (price * quantity)
-        if new_total_price <= 2000:
-            cart_items.append({
-                'product_code': product_code,
-                'product_name': product_name,
-                'price': price,
-                'quantity': quantity
-            })
-            session['cart'] = cart_items
-        else:
-            flash("O carrinho ultrapassa o limite de €2000.", "error")
-    
-    return render_template('cart.html', cart_items=cart_items, total_price=total_price)
-
-# Rota principal para mostrar todos os produtos e categorias
-@app.route('/', methods=['GET'])
+# Verifique se os produtos estão sendo passados corretamente
+@app.route('/')
 def index():
     user_logged_in = False
     user_name = None
@@ -118,80 +87,39 @@ def index():
     if oracle_conn:
         cursor = oracle_conn.cursor()
 
-        # Consulta para pegar todas as categorias
-        cursor.execute("SELECT * FROM Category")
-        categories = cursor.fetchall()
-
-        # Pegar as subcategorias
-        cursor.execute("SELECT * FROM Subcategory")
-        subcategories = cursor.fetchall()
-
-        # Paginando os resultados de produtos
-        if search_query:
-            cursor.execute("""
-                SELECT p.productCode, p.productName, p.subcategory, p.price, p.stockQuantity, p.supplier
-                FROM Product p
-                WHERE LOWER(p.productName) LIKE :search_query
-                ORDER BY p.productCode
-                OFFSET :offset ROWS FETCH NEXT :page_size ROWS ONLY
-            """, {'search_query': f"%{search_query}%", 'offset': (page_number - 1) * page_size, 'page_size': page_size})
-        elif category_id:
-            cursor.execute("""
-                SELECT p.productCode, p.productName, p.subcategory, p.price, p.stockQuantity, p.supplier
-                FROM Product p
-                JOIN Subcategory s ON p.productCode = s.productCode
-                WHERE s.categoryCode = :category_id
-                ORDER BY p.productCode
-                OFFSET :offset ROWS FETCH NEXT :page_size ROWS ONLY
-            """, {'category_id': category_id, 'offset': (page_number - 1) * page_size, 'page_size': page_size})
-        elif subcategory_id:
-            cursor.execute("""
-                SELECT p.productCode, p.productName, p.subcategory, p.price, p.stockQuantity, p.supplier
-                FROM Product p
-                JOIN Subcategory s ON p.productCode = s.productCode
-                WHERE s.subcategoryCode = :subcategory_id
-                ORDER BY p.productCode
-                OFFSET :offset ROWS FETCH NEXT :page_size ROWS ONLY
-            """, {'subcategory_id': subcategory_id, 'offset': (page_number - 1) * page_size, 'page_size': page_size})
-        else:
-            cursor.execute("""
-                SELECT p.productCode, p.productName, p.subcategory, p.price, p.stockQuantity, p.supplier
-                FROM Product p
-                ORDER BY p.productCode
-                OFFSET :offset ROWS FETCH NEXT :page_size ROWS ONLY
-            """, {'offset': (page_number - 1) * page_size, 'page_size': page_size})
-
+        # Consulta para pegar todos os produtos
+        query = """
+            SELECT productCode, productName, price, stockQuantity, supplier
+            FROM Product
+            ORDER BY productCode
+            OFFSET :offset ROWS FETCH NEXT :page_size ROWS ONLY
+        """
+        
+        cursor.execute(query, {'offset': (page_number - 1) * page_size, 'page_size': page_size})
         products = cursor.fetchall()
-
-        # Agora, pegar os atributos físicos e técnicos para cada produto
-        physical_attributes = {}
-        technical_attributes = {}
-
-        for product in products:
-            product_code = product[0]
-
-            # Atributos Físicos
-            cursor.execute("""
-                SELECT * FROM PhysicalAttributes WHERE productCode = :product_code
-            """, {'product_code': product_code})
-            physical_attributes[product_code] = cursor.fetchone()
-
-            # Atributos Técnicos
-            cursor.execute("""
-                SELECT * FROM TechnicalAttributes WHERE productCode = :product_code
-            """, {'product_code': product_code})
-            technical_attributes[product_code] = cursor.fetchone()
 
         cursor.close()
         oracle_conn.close()
 
-        return render_template('index.html', products=products, categories=categories, subcategories=subcategories,
-                               physical_attributes=physical_attributes, technical_attributes=technical_attributes,
-                               user_logged_in=user_logged_in, user_name=user_name, user_email=user_email, 
-                               user_dob=user_dob, user_role=user_role, page_number=page_number, page_size=page_size)
+        # Converter a lista de tuplas em uma lista de dicionários
+        products_data = []
+        for product in products:
+            products_data.append({
+                "productCode": product[0],
+                "productName": product[1],
+                "price": product[2],
+                "stockQuantity": product[3],
+                "supplier": product[4]
+            })
+
+        # Agora, passando corretamente a variável 'products_data' para o template
+        return render_template('index.html', products=products_data, user_logged_in=user_logged_in,
+                               user_name=user_name, user_email=user_email, user_dob=user_dob, user_role=user_role,
+                               page_number=page_number, page_size=page_size)
 
     flash("Erro ao conectar ao banco de dados.", "error")
     return redirect(url_for('index'))
+
 # Rota de login
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -324,10 +252,13 @@ def product_details(product_id):
                     'warranty': 'Não disponível'
                 }
 
+            # Obter as avaliações do produto
+            ratings = get_product_ratings(product_id)
+
             cursor.close()
             oracle_conn.close()
 
-            # Passa os dados como JSON para o modal
+            # Passa os dados para o frontend
             return jsonify({
                 'productName': product[1],
                 'price': product[3],
@@ -335,10 +266,175 @@ def product_details(product_id):
                 'stock': product[4],
                 'categoryName': product[2],
                 'physicalAttributes': physical_attributes,
-                'technicalAttributes': technical_attributes
+                'technicalAttributes': technical_attributes,
+                'ratings': ratings
             })
 
     return jsonify({'error': 'Produto não encontrado.'}), 404
+
+# Rota para recuperar as avaliações de um produto
+@app.route('/get_reviews/<int:product_id>', methods=['GET'])
+def get_reviews(product_id):
+    # Buscar as classificações dos produtos no MongoDB
+    product_ratings = product_ratings_collection.find_one({"productCode": product_id})
+    
+    # Se o produto tiver avaliações
+    if product_ratings:
+        reviews = product_ratings.get("ratings", [])
+        return jsonify({'reviews': reviews})
+    else:
+        return jsonify({'reviews': []}), 404
+
+# Função para adicionar produto ao carrinho no MongoDB
+def add_to_cart(SystemUserCode, productCode, productName, price, quantity):
+    print(f"Buscando carrinho para o usuário {SystemUserCode} no MongoDB.")  # Log de início
+    cart = db_2.cart.find_one({"SystemUserCode": SystemUserCode})
+
+    if not cart:
+        print("Carrinho não encontrado. Criando um novo carrinho.")  # Log
+        cart = {
+            "SystemUserCode": SystemUserCode,
+            "items": [],
+            "total_amount": 0
+        }
+        db_2.cart.insert_one(cart)
+
+    # Certifique-se de que quantity seja um número (int)
+    quantity = int(quantity)  # Converte quantity para inteiro
+
+    # Verificar se o produto já está no carrinho
+    product_found = False
+    for item in cart['items']:
+        if item['productCode'] == productCode:
+            item['quantity'] += quantity
+            item['total_price'] = item['quantity'] * price
+            product_found = True
+            print(f"Produto encontrado no carrinho. Quantidade atualizada: {item['quantity']}")  # Log
+            break
+
+    if not product_found:
+        cart['items'].append({
+            "productCode": productCode,
+            "productName": productName,
+            "quantity": quantity,
+            "price": price,
+            "total_price": price * quantity
+        })
+        print(f"Produto {productName} adicionado ao carrinho.")  # Log
+
+    cart['total_amount'] = sum(item['total_price'] for item in cart['items'])
+    print(f"Carrinho atualizado. Total do carrinho: €{cart['total_amount']}")  # Log
+
+    # Verificar se o total excede €2000
+    if cart['total_amount'] > 2000:
+        print("Carrinho excede €2000. Não foi adicionado.")  # Log
+        return None
+
+    print(f"Atualizando carrinho para o usuário {SystemUserCode}. Carrinho: {cart}")
+    result = db_2.cart.update_one(
+        {"SystemUserCode": SystemUserCode},
+        {"$set": cart},
+        upsert=True
+    )
+    print(f"Resultado da operação de atualização: {result}")
+    print("Carrinho atualizado no MongoDB.")  # Log
+    return cart
+
+
+# Função para remover o carrinho se estiver vazio
+def remove_cart_if_empty(SystemUserCode):
+    # Buscar o carrinho do usuário
+    cart = db_2.cart.find_one({"SystemUserCode": SystemUserCode})
+
+    if cart and len(cart['items']) == 0:
+        # Se o carrinho estiver vazio, removemos
+        db_2.cart.delete_one({"SystemUserCode": SystemUserCode})
+        return True
+    return False
+
+# Rota para visualizar o carrinho de compras
+@app.route('/cart', methods=['GET', 'POST'])
+def cart():
+    # Verifica se o usuário está logado
+    if 'user_id' not in session:
+        flash("Por favor, faça login para visualizar o carrinho.", "error")
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    
+    # Buscar o carrinho no MongoDB
+    cart = db_2.cart.find_one({"SystemUserCode": user_id})
+
+    # Se o carrinho não existir
+    if not cart:
+        cart = {"items": [], "total_amount": 0}
+
+    # Calcula o total do carrinho
+    total_price = cart['total_amount']
+
+    # Se o carrinho ultrapassar €2000, não permitimos adicionar mais itens
+    if total_price > 2000:
+        flash("O valor total do carrinho não pode exceder €2000.", "error")
+    
+    if request.method == 'POST':
+        # Aqui você pode adicionar um produto no carrinho, similar ao add_to_cart_route
+        pass
+    
+    return render_template('cart.html', cart_items=cart['items'], total_price=total_price)
+
+@app.route('/cart_data', methods=['GET'])
+def cart_data():
+    # Verificar se o usuário está logado
+    if 'user_id' not in session:
+        return jsonify({'error': 'Usuário não logado'}), 401
+
+    user_id = session['user_id']
+    
+    # Recuperar o carrinho do banco de dados ou sessão
+    cart = db_2.cart.find_one({"SystemUserCode": user_id})
+    
+    if not cart:
+        cart = {"items": [], "total_amount": 0}
+
+    return jsonify({
+        'items': cart['items'],
+        'total_amount': cart['total_amount']
+    })
+
+@app.route('/add_to_cart', methods=['POST'])
+def add_to_cart_route():
+    if 'user_id' not in session:
+        flash("Por favor, faça login para adicionar produtos ao carrinho.", "error")
+        return redirect(url_for('login'))
+
+    data = request.get_json()  # Recebe os dados em formato JSON
+    print(f"Dados recebidos: {data}")  # Log para ver os dados recebidos no backend
+
+    # Verificar se todos os dados necessários estão presentes
+    if 'product_id' not in data or 'quantity' not in data:
+        print("Dados ausentes no request.")  # Log
+        return jsonify({'success': False, 'message': 'Dados inválidos.'}), 400
+
+    # Conectar ao banco de dados e verificar o produto
+    oracle_conn = connect_oracle()
+    if oracle_conn:
+        cursor = oracle_conn.cursor()
+        cursor.execute("SELECT productName, price FROM Product WHERE productCode = :product_id", {'product_id': data['product_id']})
+        product = cursor.fetchone()
+        if not product:
+            print("Produto não encontrado no banco de dados.")  # Log
+            return jsonify({'success': False, 'message': 'Produto não encontrado.'}), 404
+        cursor.close()
+        oracle_conn.close()
+
+        # Adicionar o produto ao carrinho
+        cart = add_to_cart(session['user_id'], data['product_id'], product[0], product[1], data['quantity'])
+        if not cart:
+            return jsonify({'success': False, 'message': 'O valor total do carrinho excede o limite de €2000.'}), 400
+
+        return jsonify({'success': True, 'message': 'Produto adicionado ao carrinho!'}), 200
+
+    return jsonify({'success': False, 'message': 'Erro ao adicionar produto ao carrinho.'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
