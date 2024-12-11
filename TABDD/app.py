@@ -477,10 +477,12 @@ def add_to_cart_route():
 
 @app.route('/order_locations', methods=['GET'])
 def order_locations():
+    # Verifica se o usuário tem permissão (Delivery Order Manager)
     if 'user_role' not in session or session['user_role'] != 'delivery order manager':
         flash("Você não tem permissão para acessar essa página.", "error")
         return redirect(url_for('index'))
 
+    # Recebe a data e hora selecionada do formulário
     selected_datetime = request.args.get('selected_datetime')
 
     # Converte para o formato datetime
@@ -494,31 +496,37 @@ def order_locations():
     if oracle_conn:
         cursor = oracle_conn.cursor()
 
-        # Buscar as ordens e localizações para a data e hora fornecida
+        # Modificar a consulta para fazer join entre Orders e OrderLocation
         cursor.execute("""
             SELECT o.orderCode, o.orderDate, ol.location, ol.timestamp
-            FROM Orders o
-            JOIN OrderLocation ol ON o.orderCode = ol.orderCode
+            FROM OrderLocation ol
+            JOIN Orders o ON ol.orderCode = o.orderCode
             WHERE ol.timestamp = :selected_datetime
         """, {'selected_datetime': selected_datetime})
 
         order_locations = cursor.fetchall()
-
+                # Fechar o cursor e a conexão ao banco de dados
         cursor.close()
         oracle_conn.close()
 
-        # Preparar os dados para o frontend
-        orders = []
+        # Se não houver ordens encontradas
+        if not order_locations:
+            return jsonify({'message': 'Nenhuma ordem encontrada para a data e hora selecionadas.'}), 404
+
+        # Caso contrário, retornamos as ordens encontradas
+        orders_info = []
         for order in order_locations:
-            orders.append({
-                'orderCode': order[0],
-                'orderDate': order[1].strftime('%Y-%m-%d %H:%M:%S'),
-                'location': order[2],
-                'timestamp': order[3].strftime('%Y-%m-%d %H:%M:%S')
+            order_code, order_date, location, timestamp = order
+            orders_info.append({
+                'orderCode': order_code,
+                'orderDate': order_date,
+                'location': location,
+                'timestamp': timestamp.strftime('%Y-%m-%d %H:%M:%S')  # Formatar o timestamp
             })
 
-        return jsonify({'orders': orders})
+        return jsonify({'orders': orders_info})
 
+    # Caso a conexão com o banco de dados falhe
     return jsonify({'error': 'Erro ao conectar ao banco de dados.'}), 500
 
 if __name__ == '__main__':

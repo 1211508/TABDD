@@ -68,9 +68,8 @@
                     </a>
                     <a href="/logout" class="btn btn-outline-danger">Sair</a>
                     {% if user_role == 'delivery order manager' %}
-                        <!-- Exibe o botão para localizar ordens apenas para Delivery Order Managers -->
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#orderLocationModal">
-                            Locate Orders
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#orderLocationModal">
+                            Localizar Ordens
                         </button>
                     {% endif %}
                 {% else %}
@@ -84,6 +83,29 @@
             </div>
         </div>
     </nav>
+
+    <!-- Modal para Localizar Ordens -->
+    <div class="modal fade" id="orderLocationModal" tabindex="-1" aria-labelledby="orderLocationModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="orderLocationModalLabel">Localizações das Ordens</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="datetime-picker">Selecione a Data e Hora:</label>
+                    <input type="datetime-local" id="datetime-picker" class="form-control mb-3">
+                    <button id="search-locations-btn" class="btn btn-primary w-100">Buscar Localizações</button>
+                    <div id="order-location-results" class="mt-3">
+                        <!-- As localizações das ordens serão exibidas aqui -->
+                        <p id="no-results-msg" class="text-danger" style="display:none;">Nenhuma ordem encontrada para a data e hora selecionadas.</p>
+                        <ul id="location-list"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Modal de Login e Registro -->
     <div class="modal fade" id="loginRegisterModal" tabindex="-1" aria-labelledby="loginRegisterModalLabel" aria-hidden="true">
@@ -182,7 +204,7 @@
                             <label for="selected_datetime" class="form-label">Selecione a Data e Hora:</label>
                             <input type="text" name="selected_datetime" id="selected_datetime" class="form-control" placeholder="YYYY-MM-DD HH:MM:SS" required>
                         </div>
-                        <button type="submit" class="btn btn-primary">Buscar Localizações</button>
+                        <button type="submit" class="btn btn-primary">Procurar Orders</button>
                     </form>
 
                     <!-- Exibição das ordens encontradas -->
@@ -467,6 +489,47 @@
                 })
                 .catch(err => {
                     console.error('Erro ao carregar detalhes do produto:', err);
+                });
+        });
+
+        document.getElementById('search-locations-btn').addEventListener('click', function() {
+            const selectedDatetime = document.getElementById('datetime-picker').value;
+
+            if (!selectedDatetime) {
+                alert("Por favor, selecione uma data e hora.");
+                return;
+            }
+
+            // Converter o valor de "datetime-local" para o formato adequado (YYYY-MM-DD HH:mm:ss)
+            const formattedDatetime = selectedDatetime.replace('T', ' ');
+
+            // Enviar para o backend via fetch
+            fetch(`/order_locations?selected_datetime=${formattedDatetime}`)
+                .then(response => response.json())
+                .then(data => {
+                    const resultsContainer = document.getElementById('order-location-results');
+                    const noResultsMsg = document.getElementById('no-results-msg');
+                    const locationList = document.getElementById('location-list');
+
+                    // Limpar a lista antes de adicionar novos resultados
+                    locationList.innerHTML = '';
+                    noResultsMsg.style.display = 'none';
+
+                    if (data.orders && data.orders.length > 0) {
+                        // Se houver ordens, exibe-as
+                        data.orders.forEach(order => {
+                            const listItem = document.createElement('li');
+                            listItem.textContent = `Order Code: ${order.orderCode}, Location: ${order.location}, Date: ${order.timestamp}`;
+                            locationList.appendChild(listItem);
+                        });
+                    } else {
+                        // Se não houver resultados
+                        noResultsMsg.style.display = 'block';
+                    }
+                })
+                .catch(err => {
+                    console.error("Erro ao buscar as localizações das ordens:", err);
+                    alert("Erro ao buscar as localizações das ordens.");
                 });
         });
 
