@@ -3,6 +3,7 @@ import cx_Oracle
 import random
 from datetime import timedelta
 from pymongo import MongoClient
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = 's3cr3t'  # A chave secreta para sessões
@@ -352,6 +353,44 @@ def remove_cart_if_empty(SystemUserCode):
         return True
     return False
 
+@app.route('/remove_from_cart', methods=['POST'])
+def remove_from_cart():
+    if 'user_id' not in session:
+        flash("Por favor, faça login para alterar o carrinho.", "error")
+        return redirect(url_for('login'))
+
+    product_code = request.form['product_code']
+    quantity = int(request.form['quantity'])
+
+    # Recuperar o carrinho do MongoDB
+    cart = db_2.cart.find_one({"SystemUserCode": session['user_id']})
+
+    if cart:
+        # Procurar o item no carrinho
+        for item in cart['items']:
+            if item['productCode'] == product_code:
+                # Se o item foi encontrado
+                if item['quantity'] <= quantity:
+                    # Remover o item completamente
+                    cart['items'].remove(item)
+                    print(f"Produto {item['productName']} removido completamente do carrinho.")
+                else:
+                    # Remover a quantidade específica
+                    item['quantity'] -= quantity
+                    item['total_price'] = item['quantity'] * item['price']
+                    print(f"Quantidade do produto {item['productName']} reduzida em {quantity} unidades.")
+                break
+
+        # Atualizar o carrinho no MongoDB
+        cart['total_amount'] = sum(item['total_price'] for item in cart['items'])
+        db_2.cart.update_one({"SystemUserCode": session['user_id']}, {"$set": cart})
+
+        flash("Carrinho atualizado.", "success")
+    else:
+        flash("Carrinho não encontrado.", "error")
+
+    return redirect(url_for('cart'))
+
 # Rota para visualizar o carrinho de compras
 @app.route('/cart', methods=['GET', 'POST'])
 def cart():
@@ -435,6 +474,52 @@ def add_to_cart_route():
         return jsonify({'success': True, 'message': 'Produto adicionado ao carrinho!'}), 200
 
     return jsonify({'success': False, 'message': 'Erro ao adicionar produto ao carrinho.'}), 500
+
+@app.route('/order_locations', methods=['GET'])
+def order_locations():
+    if 'user_role' not in session or session['user_role'] != 'delivery order manager':
+        flash("Você não tem permissão para acessar essa página.", "error")
+        return redirect(url_for('index'))
+
+    selected_datetime = request.args.get('selected_datetime')
+
+    # Converte para o formato datetime
+    try:
+        selected_datetime = datetime.strptime(selected_datetime, '%Y-%m-%d %H:%M:%S')
+    except ValueError:
+        return jsonify({'error': 'Formato de data e hora inválido.'}), 400
+
+    # Conectar ao banco de dados Oracle
+    oracle_conn = connect_oracle()
+    if oracle_conn:
+        cursor = oracle_conn.cursor()
+
+        # Buscar as ordens e localizações para a data e hora fornecida
+        cursor.execute("""
+            SELECT o.orderCode, o.orderDate, ol.location, ol.timestamp
+            FROM Orders o
+            JOIN OrderLocation ol ON o.orderCode = ol.orderCode
+            WHERE ol.timestamp = :selected_datetime
+        """, {'selected_datetime': selected_datetime})
+
+        order_locations = cursor.fetchall()
+
+        cursor.close()
+        oracle_conn.close()
+
+        # Preparar os dados para o frontend
+        orders = []
+        for order in order_locations:
+            orders.append({
+                'orderCode': order[0],
+                'orderDate': order[1].strftime('%Y-%m-%d %H:%M:%S'),
+                'location': order[2],
+                'timestamp': order[3].strftime('%Y-%m-%d %H:%M:%S')
+            })
+
+        return jsonify({'orders': orders})
+
+    return jsonify({'error': 'Erro ao conectar ao banco de dados.'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

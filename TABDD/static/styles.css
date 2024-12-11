@@ -14,7 +14,7 @@ body {
 
 /* Header */
 header {
-    background-color: #2c3e50;
+    background-color: #89CFF0;
     padding: 20px;
     color: white;
 }
@@ -97,9 +97,12 @@ header nav .nav-links a {
 }
 
 .product-card .btn:hover {
-    background-color: #c0392b; /* Cor vermelha mais escura no hover */
+    background-color: #0096FF; /* Cor vermelha mais escura no hover */
 }
 
+.cart-items .btn {
+    margin-left: 5px;
+}
 
 
 /* Footer */

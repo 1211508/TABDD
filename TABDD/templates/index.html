@@ -67,6 +67,12 @@
                         {{ user_name }}
                     </a>
                     <a href="/logout" class="btn btn-outline-danger">Sair</a>
+                    {% if user_role == 'delivery order manager' %}
+                        <!-- Exibe o botão para localizar ordens apenas para Delivery Order Managers -->
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#orderLocationModal">
+                            Locate Orders
+                        </button>
+                    {% endif %}
                 {% else %}
                     <!-- Login/Cadastro modal trigger -->
                     <a href="#" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#loginRegisterModal">Login/Cadastrar</a>
@@ -161,6 +167,53 @@
         </div>
     </div>
 
+    <!-- Modal para exibir as localizações das ordens -->
+    <div class="modal fade" id="orderLocationModal" tabindex="-1" aria-labelledby="orderLocationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="orderLocationModalLabel">Localizações das Ordens</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Formulário para selecionar a data e hora -->
+                    <form method="GET" id="locationForm">
+                        <div class="mb-3">
+                            <label for="selected_datetime" class="form-label">Selecione a Data e Hora:</label>
+                            <input type="text" name="selected_datetime" id="selected_datetime" class="form-control" placeholder="YYYY-MM-DD HH:MM:SS" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Buscar Localizações</button>
+                    </form>
+
+                    <!-- Exibição das ordens encontradas -->
+                    <div id="orderLocationsTable" style="display:none;">
+                        <h3>Ordens na Data e Hora: <span id="selectedDatetime"></span></h3>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Código do Pedido</th>
+                                    <th scope="col">Data do Pedido</th>
+                                    <th scope="col">Localização</th>
+                                    <th scope="col">Data e Hora da Localização</th>
+                                </tr>
+                            </thead>
+                            <tbody id="orderLocationsBody">
+                                <!-- As ordens serão adicionadas aqui dinamicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="noOrdersMessage" style="display:none;">
+                        <p>Nenhuma ordem encontrada para a data e hora selecionadas.</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal para selecionar a quantidade -->
     <div class="modal fade" id="quantityModal" tabindex="-1" aria-labelledby="quantityModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -197,6 +250,9 @@
                         <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#quantityModal" data-product-id="{{ product['productCode'] }}">
                             Adicionar ao Carrinho
                         </button>
+                        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#productDetailsModal" data-product-id="{{ product['productCode'] }}">
+                            Detalhes
+                        </button>
                     </div>
                 </div>
             </div>
@@ -231,72 +287,54 @@
         </ul>
     </div>
     
-
     <!-- Modal do Carrinho -->
     <div class="modal fade" id="cartModal" tabindex="-1" aria-labelledby="cartModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-            <h5 class="modal-title" id="cartModalLabel">Carrinho de Compras</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-            <div id="cartItems">
-                <p>Carregando seu carrinho...</p>
-            </div>
-            <div id="cartTotal">
-                <p>Total: €0.00</p>
-            </div>
-            </div>
-            <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-            <button type="button" class="btn btn-primary">Finalizar Compra</button>
-            </div>
-        </div>
-        </div>
-    </div>
-
-
-    <!-- Modal de Detalhes do Produto -->
-    <div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="productModalLabel">Detalhes do Produto</h5>
+                    <h5 class="modal-title" id="cartModalLabel">Carrinho de Compras</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p><strong>Categoria:</strong> <span id="product-category"></span></p>
-                    <p><strong>Preço:</strong> <span id="product-price"></span></p>
+                    <div id="cartItems">
+                        <p>Carregando seu carrinho...</p>
+                    </div>
+                    <div id="cartTotal">
+                        <p>Total: €0.00</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-primary">Finalizar Compra</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Detalhes do Produto -->
+    <div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="productDetailsModalLabel">Detalhes do Produto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Informações do Produto -->
+                    <p><strong>Nome:</strong> <span id="product-name"></span></p>
+                    <p><strong>Preço:</strong> €<span id="product-price"></span></p>
                     <p><strong>Fornecedor:</strong> <span id="product-supplier"></span></p>
                     <p><strong>Quantidade em Estoque:</strong> <span id="product-stock"></span></p>
 
-                    <p><strong>Atributos Físicos:</strong></p>
-                    <ul id="product-attributes"></ul>
+                    <h6>Atributos Físicos</h6>
+                    <ul id="product-physical-attributes"></ul>
 
-                    <p><strong>Atributos Técnicos:</strong></p>
-                    <ul id="product-tech-attributes"></ul>
+                    <h6>Atributos Técnicos</h6>
+                    <ul id="product-technical-attributes"></ul>
 
-                    <!-- Botão para abrir o modal das avaliações -->
-                    <button class="btn btn-info" id="show-reviews-btn" data-product-id="" data-bs-toggle="modal" data-bs-target="#reviewsModal">
-                        Ver Avaliações
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal das Avaliações -->
-    <div class="modal fade" id="reviewsModal" tabindex="-1" aria-labelledby="reviewsModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="reviewsModalLabel">Avaliações do Produto</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <ul id="product-ratings-list">
-                        <li>Não há avaliações para este produto.</li>
+                    <h6>Avaliações</h6>
+                    <ul id="product-reviews">
+                        <li>Sem avaliações disponíveis.</li>
                     </ul>
                 </div>
                 <div class="modal-footer">
@@ -305,6 +343,66 @@
             </div>
         </div>
     </div>
+
+
+    <div class="modal fade" id="cartModal" tabindex="-1" aria-labelledby="cartModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cartModalLabel">Carrinho de Compras</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    {% if cart_items %}
+                        <div class="cart-items">
+                            {% for item in cart_items %}
+                                <div class="row align-items-center mb-3">
+                                    <div class="col-md-4">
+                                        <strong>{{ item.productName }}</strong>
+                                    </div>
+                                    <div class="col-md-2">
+                                        €{{ item.price }}
+                                    </div>
+                                    <div class="col-md-2">
+                                        Quantidade: {{ item.quantity }}
+                                    </div>
+                                    <div class="col-md-2">
+                                        Total: €{{ item.total_price }}
+                                    </div>
+                                    <div class="col-md-2 text-end">
+                                        <!-- Botão para remover 1 unidade -->
+                                        <form action="/remove_from_cart" method="POST" style="display:inline;">
+                                            <input type="hidden" name="product_code" value="{{ item.productCode }}">
+                                            <input type="hidden" name="quantity" value="1">
+                                            <button type="submit" class="btn btn-danger btn-sm">Remover 1</button>
+                                        </form>
+                                        <!-- Botão para remover tudo -->
+                                        <form action="/remove_from_cart" method="POST" style="display:inline;">
+                                            <input type="hidden" name="product_code" value="{{ item.productCode }}">
+                                            <input type="hidden" name="quantity" value="{{ item.quantity }}">
+                                            <button type="submit" class="btn btn-danger btn-sm">Remover Tudo</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <hr>
+                        <div class="text-end">
+                            <strong>Total do Carrinho: €{{ total_price }}</strong>
+                        </div>
+                    {% else %}
+                        <p>Seu carrinho está vazio.</p>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-primary">Finalizar Compra</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -315,46 +413,102 @@
 
     <script>
         // Passar os dados do produto para o modal
-        const productModal = document.getElementById('productModal');
-        productModal.addEventListener('show.bs.modal', function(event) {
-            const button = event.relatedTarget;
-            const productId = button.getAttribute('data-product-id');
+        document.getElementById('productDetailsModal').addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget; // Botão que ativou o modal
+            const productId = button.getAttribute('data-product-id'); // ID do produto
             
-            // Aqui você pode fazer a requisição AJAX para buscar os dados completos do produto
+            // Requisição para obter detalhes do produto (Oracle)
             fetch(`/product_details/${productId}`)
                 .then(response => response.json())
                 .then(data => {
-                    // Atualizar o modal com os dados do produto
-                    document.getElementById('product-category').textContent = data.categoryName;
-                    document.getElementById('product-price').textContent = `€${data.price}`;
+                    // Preencher os dados do produto no modal
+                    document.getElementById('product-name').textContent = data.productName;
+                    document.getElementById('product-price').textContent = data.price;
                     document.getElementById('product-supplier').textContent = data.supplier;
                     document.getElementById('product-stock').textContent = data.stock;
-    
-                    // Preencher todos os atributos físicos
-                    let productAttributes = document.getElementById('product-attributes');
-                    productAttributes.innerHTML = `
+
+                    // Preencher atributos físicos
+                    let physicalAttributesList = document.getElementById('product-physical-attributes');
+                    physicalAttributesList.innerHTML = `
                         <li><strong>Cor:</strong> ${data.physicalAttributes.color}</li>
                         <li><strong>Peso:</strong> ${data.physicalAttributes.weight} kg</li>
                         <li><strong>Altura:</strong> ${data.physicalAttributes.height} cm</li>
                         <li><strong>Largura:</strong> ${data.physicalAttributes.width} cm</li>
                         <li><strong>Profundidade:</strong> ${data.physicalAttributes.depth} cm</li>
                     `;
-    
-                    // Preencher os atributos técnicos
-                    let productTechAttributes = document.getElementById('product-tech-attributes');
-                    productTechAttributes.innerHTML = `
+
+                    // Preencher atributos técnicos
+                    let technicalAttributesList = document.getElementById('product-technical-attributes');
+                    technicalAttributesList.innerHTML = `
                         <li><strong>Processador:</strong> ${data.technicalAttributes.processor}</li>
                         <li><strong>RAM:</strong> ${data.technicalAttributes.ram}</li>
                         <li><strong>Armazenamento:</strong> ${data.technicalAttributes.storage}</li>
                         <li><strong>Vida da Bateria:</strong> ${data.technicalAttributes.batteryLife}</li>
                         <li><strong>Garantia:</strong> ${data.technicalAttributes.warranty}</li>
                     `;
-    
-                    // Atualizar o id do produto no botão de avaliações
-                    document.getElementById('show-reviews-btn').setAttribute('data-product-id', productId);
+
+                    // Requisição para obter avaliações do produto (MongoDB)
+                    fetch(`/get_reviews/${productId}`)
+                        .then(response => response.json())
+                        .then(reviewData => {
+                            let reviewsList = document.getElementById('product-reviews');
+                            reviewsList.innerHTML = ''; // Limpa a lista antes de adicionar novos dados
+
+                            if (reviewData.reviews && reviewData.reviews.length > 0) {
+                                reviewData.reviews.forEach(review => {
+                                    const reviewItem = document.createElement('li');
+                                    reviewItem.textContent = `Nota: ${review.rating} - Comentário: ${review.comment} - Cliente: ${review.user.name}`;
+                                    reviewsList.appendChild(reviewItem);
+                                });
+                            } else {
+                                reviewsList.innerHTML = '<li>Não há avaliações para este produto.</li>';
+                            }
+                        });
+                })
+                .catch(err => {
+                    console.error('Erro ao carregar detalhes do produto:', err);
                 });
         });
-    
+
+        document.getElementById('locationForm').addEventListener('submit', function (event) {
+            event.preventDefault();  // Previne o envio do formulário
+
+            const selectedDatetime = document.getElementById('selected_datetime').value;
+
+            // Exibe a data e hora no modal
+            document.getElementById('selectedDatetime').innerText = selectedDatetime;
+
+            // Faz a requisição ao servidor para obter as ordens para a data selecionada
+            fetch(`/order_locations?selected_datetime=${selectedDatetime}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.orders && data.orders.length > 0) {
+                        document.getElementById('orderLocationsTable').style.display = 'block';
+                        document.getElementById('noOrdersMessage').style.display = 'none';
+                        
+                        // Preenche a tabela com as ordens
+                        const orderLocationsBody = document.getElementById('orderLocationsBody');
+                        orderLocationsBody.innerHTML = '';  // Limpa as ordens anteriores
+                        data.orders.forEach(order => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${order.orderCode}</td>
+                                <td>${order.orderDate}</td>
+                                <td>${order.location}</td>
+                                <td>${order.timestamp}</td>
+                            `;
+                            orderLocationsBody.appendChild(row);
+                        });
+                    } else {
+                        document.getElementById('orderLocationsTable').style.display = 'none';
+                        document.getElementById('noOrdersMessage').style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar ordens:', error);
+                });
+        });
+
         document.addEventListener('DOMContentLoaded', function () {
             let selectedProductId = null;
 
@@ -410,30 +564,7 @@
                 });
             });
         });
-        // Lógica para exibir o popup de avaliações
-        const reviewsBtn = document.getElementById('show-reviews-btn');
-        reviewsBtn.addEventListener('click', function() {
-            const productId = reviewsBtn.getAttribute('data-product-id'); // ID do produto
-            fetch(`/get_reviews/${productId}`)
-                .then(response => response.json())
-                .then(data => {
-                    const reviewsList = document.getElementById('product-ratings-list');
-                    reviewsList.innerHTML = ''; // Limpa a lista antes de preencher
-    
-                    if (data.reviews.length > 0) {
-                        data.reviews.forEach(review => {
-                            const reviewItem = document.createElement('li');
-                            reviewItem.textContent = `Nota: ${review.rating}, Comentário: ${review.comment} - Cliente: ${review.user.name}`;
-                            reviewsList.appendChild(reviewItem);
-                        });
-                    } else {
-                        reviewsList.innerHTML = "<li>Não há avaliações para este produto.</li>";
-                    }
-                })
-                .catch(err => {
-                    console.error('Erro ao carregar as avaliações:', err);
-                });
-        });
+        
         const addToCartButtons = document.querySelectorAll('.btn-success');
         addToCartButtons.forEach(button => {
             button.addEventListener('click', function() {
