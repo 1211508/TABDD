@@ -79,7 +79,7 @@
                     {% endif %}
                 {% else %}
                     <!-- Login/Cadastro modal trigger -->
-                    <a href="#" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#loginRegisterModal">Login/Cadastrar</a>
+                    <a href="#" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#loginRegisterModal">Login/Registar</a>
                 {% endif %}
                     <!-- Botão de visualizar o carrinho -->
                 <a href="#" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#cartModal">
@@ -88,6 +88,46 @@
             </div>
         </div>
     </nav>
+
+    <!-- Modal para Localizar Ordens -->
+    <div class="modal fade" id="orderLocationModal" tabindex="-1" aria-labelledby="orderLocationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="orderLocationModalLabel">Localizações das Ordens</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="locationForm">
+                        <label for="datetime-picker">Selecione a Data e Hora:</label>
+                        <input type="datetime-local" id="datetime-picker" name="selected_datetime" class="form-control mb-3" required>
+                        <button type="submit" id="search-locations-btn" class="btn btn-primary w-100">Buscar Localizações</button>
+                    </form>
+
+                    <!-- Resultados -->
+                    <div id="orderLocationsTable" style="display:none;" class="mt-3">
+                        <h3>Resultados encontrados:</h3>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Código do Pedido</th>
+                                    <th scope="col">Data do Pedido</th>
+                                    <th scope="col">Localização</th>
+                                    <th scope="col">Data e Hora da Localização</th>
+                                </tr>
+                            </thead>
+                            <tbody id="orderLocationsBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="noOrdersMessage" class="text-danger mt-3" style="display:none;">
+                        Nenhuma ordem encontrada para a data e hora selecionadas.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
 
     <!-- Modal para o Manager Localizar Compras -->
     <div class="modal fade" id="orderViewModal" tabindex="-1" aria-labelledby="orderViewModalLabel" aria-hidden="true">
@@ -310,12 +350,11 @@
         </div>
     </div>
 
-    <!-- Modal para selecionar a quantidade -->
-    <div class="modal fade" id="quantityModal" tabindex="-1" aria-labelledby="quantityModalLabel" aria-hidden="true">
+    <div class="modal fade" id="quantityModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="quantityModalLabel">Escolha a Quantidade</h5>
+                    <h5 class="modal-title">Escolha a Quantidade</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -326,7 +365,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                    <button type="button" class="btn btn-primary" id="addToCartBtn">Adicionar ao Carrinho</button>
+                    <button type="submit" form="quantityForm" class="btn btn-primary">Adicionar ao Carrinho</button>
                 </div>
             </div>
         </div>
@@ -342,7 +381,10 @@
                     <div class="card-body">
                         <h5 class="card-title">{{ product['productName'] }}</h5>
                         <p class="card-text">€{{ product['price'] }}</p>
-                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#quantityModal" data-product-id="{{ product['productCode'] }}">
+                        <button class="btn btn-success" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#quantityModal" 
+                                data-product-id="{{ product['productCode'] }}">
                             Adicionar ao Carrinho
                         </button>
                         <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#productDetailsModal" data-product-id="{{ product['productCode'] }}">
@@ -497,6 +539,29 @@
         </div>
     </div>
 
+    <!-- Modal para Adicionar ao Carrinho -->
+    <div class="modal fade" id="quantityModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Escolha a Quantidade</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="quantityForm">
+                        <input type="number" id="quantity" name="quantity" min="1" value="1" class="form-control" required>
+                        <input type="hidden" id="product_id" name="product_id">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="submit" form="quantityForm" class="btn btn-primary">Adicionar ao Carrinho</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -531,21 +596,21 @@
                     // Preencher os atributos físicos
                     const physicalAttributesList = document.getElementById('product-physical-attributes');
                     physicalAttributesList.innerHTML = `
-                        <li><strong>Cor:</strong> ${data.physicalAttributes.color}</li>
-                        <li><strong>Peso:</strong> ${data.physicalAttributes.weight}</li>
-                        <li><strong>Altura:</strong> ${data.physicalAttributes.height}</li>
-                        <li><strong>Largura:</strong> ${data.physicalAttributes.width}</li>
-                        <li><strong>Profundidade:</strong> ${data.physicalAttributes.depth}</li>
+                        <li><strong>Cor:</strong> ${data.physicalAttributes[0]}</li>
+                        <li><strong>Peso:</strong> ${data.physicalAttributes[1]}</li>
+                        <li><strong>Altura:</strong> ${data.physicalAttributes[2]}</li>
+                        <li><strong>Largura:</strong> ${data.physicalAttributes[3]}</li>
+                        <li><strong>Profundidade:</strong> ${data.physicalAttributes[4]}</li>
                     `;
 
                     // Preencher os atributos técnicos
                     const technicalAttributesList = document.getElementById('product-technical-attributes');
                     technicalAttributesList.innerHTML = `
-                        <li><strong>Processador:</strong> ${data.technicalAttributes.processor}</li>
-                        <li><strong>RAM:</strong> ${data.technicalAttributes.ram}</li>
-                        <li><strong>Armazenamento:</strong> ${data.technicalAttributes.storage}</li>
-                        <li><strong>Vida da Bateria:</strong> ${data.technicalAttributes.batteryLife}</li>
-                        <li><strong>Garantia:</strong> ${data.technicalAttributes.warranty}</li>
+                        <li><strong>Processador:</strong> ${data.technicalAttributes[0]}</li>
+                        <li><strong>RAM:</strong> ${data.technicalAttributes[1]}</li>
+                        <li><strong>Armazenamento:</strong> ${data.technicalAttributes[2]}</li>
+                        <li><strong>Vida da Bateria:</strong> ${data.technicalAttributes[3]}</li>
+                        <li><strong>Garantia:</strong> ${data.technicalAttributes[4]}</li>
                     `;
 
                     // Preencher as avaliações
@@ -681,8 +746,8 @@
                     }
                 })
                 .catch(err => {
-                    console.error("Erro ao buscar as localizações das ordens:", err);
-                    alert("Erro ao buscar as localizações das ordens.");
+                    console.error("Erro ao procurar as localizações das ordens:", err);
+                    alert("Erro ao procurar as localizações das ordens.");
                 });
         });
 
@@ -726,59 +791,190 @@
         });
 
         document.addEventListener('DOMContentLoaded', function () {
-            let selectedProductId = null;
+            const locationForm = document.getElementById('locationForm');
+            const locationsTable = document.getElementById('orderLocationsTable');
+            const locationsBody = document.getElementById('orderLocationsBody');
+            const noOrdersMessage = document.getElementById('noOrdersMessage');
 
-            // Abre o modal e armazena o ID do produto no botão
-            const addToCartButtons = document.querySelectorAll('[data-bs-target="#quantityModal"]');
-            addToCartButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    selectedProductId = button.getAttribute('data-product-id');
-                    // Defina o ID do produto no campo oculto do formulário no modal
-                    document.getElementById('product_id').value = selectedProductId;
-                });
-            });
+            if (locationForm) {
+                locationForm.addEventListener('submit', function (event) {
+                    event.preventDefault();
 
-            // Submissão do formulário do modal
-            const quantityForm = document.getElementById('quantityForm');
-            quantityForm.addEventListener('submit', function (event) {
-                event.preventDefault();  // Previne o comportamento padrão do formulário
+                    const selectedDatetime = document.getElementById('datetime-picker').value;
 
-                const quantity = document.getElementById('quantity').value;
-
-                // Verifique se a quantidade é válida
-                if (quantity < 1) {
-                    alert("Por favor, selecione uma quantidade válida.");
-                    return;
-                }
-
-                // Enviar os dados para o backend
-                fetch('/add_to_cart', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        product_id: productId,
-                        quantity: quantity
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Produto adicionado ao carrinho!');
-                        // Fechar o modal após a adição ao carrinho
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('quantityModal'));
-                        modal.hide();
-                        location.reload();  // Atualiza a página para refletir as mudanças no carrinho
-                    } else {
-                        alert('Erro ao adicionar ao carrinho: ' + data.message);  // Exibe mensagem detalhada
+                    if (!selectedDatetime) {
+                        alert("Por favor, selecione uma data e hora.");
+                        return;
                     }
-                })
-                .catch(error => {
-                    console.error('Erro:', error);
-                    alert('Erro ao adicionar ao carrinho.');
+
+                    // Enviar para o backend
+                    fetch(`/order_locations?selected_datetime=${encodeURIComponent(selectedDatetime)}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Erro ao buscar localizações');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            // Limpar a tabela anterior
+                            locationsBody.innerHTML = '';
+                            locationsTable.style.display = 'none';
+                            noOrdersMessage.style.display = 'none';
+
+                            if (data.orders && data.orders.length > 0) {
+                                data.orders.forEach(order => {
+                                    const row = document.createElement('tr');
+                                    row.innerHTML = `
+                                        <td>${order.orderCode}</td>
+                                        <td>${order.orderDate}</td>
+                                        <td>${order.location}</td>
+                                        <td>${order.timestamp}</td>
+                                    `;
+                                    locationsBody.appendChild(row);
+                                });
+                                locationsTable.style.display = 'block';
+                            } else {
+                                noOrdersMessage.style.display = 'block';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Erro ao buscar as localizações das ordens:', error);
+                            alert('Erro ao buscar as localizações das ordens.');
+                        });
+                });
+            }
+
+            // Gerenciar a seleção de produto no modal de quantidade
+            const quantityForm = document.getElementById('quantityForm');
+            const productIdField = document.getElementById('product_id');
+
+            document.querySelectorAll('[data-bs-target="#quantityModal"]').forEach(button => {
+                button.addEventListener('click', function () {
+                    const productId = button.getAttribute('data-product-id');
+                    if (productIdField) {
+                        productIdField.value = productId;
+                    }
                 });
             });
+
+            if (quantityForm) {
+                quantityForm.addEventListener('submit', function (event) {
+                    event.preventDefault();
+
+                    const productId = productIdField ? productIdField.value : null;
+                    const quantity = document.getElementById('quantity').value;
+
+                    if (!productId || quantity < 1) {
+                        alert('Por favor, selecione uma quantidade válida.');
+                        return;
+                    }
+
+                    fetch('/add_to_cart', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ product_id: productId, quantity: quantity })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert('Produto adicionado ao carrinho!');
+                                const modal = bootstrap.Modal.getInstance(document.getElementById('quantityModal'));
+                                modal.hide();
+                                location.reload();
+                            } else {
+                                alert('Erro ao adicionar ao carrinho: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Erro ao adicionar ao carrinho:', error);
+                            alert('Erro ao adicionar ao carrinho.');
+                        });
+                });
+            }
+            const addToCartBtn = document.getElementById('addToCartBtn');
+                if (addToCartBtn) {
+                    addToCartBtn.addEventListener('click', function () {
+                        const productId = document.getElementById('product_id').value;
+                        const quantity = document.getElementById('quantity').value;
+
+                        if (!productId || quantity < 1) {
+                            alert('Por favor, selecione uma quantidade válida.');
+                            return;
+                        }
+
+                        fetch('/add_to_cart', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ product_id: productId, quantity: quantity })
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    alert('Produto adicionado ao carrinho!');
+                                    const modal = bootstrap.Modal.getInstance(document.getElementById('quantityModal'));
+                                    modal.hide();
+                                    location.reload();
+                                } else {
+                                    alert('Erro ao adicionar ao carrinho: ' + data.message);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Erro ao adicionar ao carrinho:', error);
+                                alert('Erro ao adicionar ao carrinho.');
+                            });
+                    });
+                } else {
+                    console.error("Botão 'addToCartBtn' não encontrado no DOM.");
+                }
+            // Exibir itens do carrinho no modal
+            const cartModal = document.getElementById('cartModal');
+            if (cartModal) {
+                cartModal.addEventListener('show.bs.modal', function () {
+                    console.log("Modal de carrinho aberto. Buscando itens no backend...");
+        
+                    fetch('/cart_data')
+                        .then(response => {
+                            console.log("Resposta recebida para dados do carrinho:", response);
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log("Dados do carrinho recebidos:", data);
+        
+                            const cartItemsContainer = document.getElementById('cartItems');
+                            const cartTotal = document.getElementById('cartTotal');
+        
+                            cartItemsContainer.innerHTML = ""; // Limpar conteúdo anterior
+        
+                            if (data.items.length === 0) {
+                                cartItemsContainer.innerHTML = "<p>Seu carrinho está vazio.</p>";
+                                console.log("Carrinho vazio.");
+                            } else {
+                                data.items.forEach(item => {
+                                    const itemHTML = `
+                                        <div class="row">
+                                            <div class="col-md-8">${item.productName}</div>
+                                            <div class="col-md-2">€${item.price}</div>
+                                            <div class="col-md-2">${item.quantity}</div>
+                                        </div>
+                                    `;
+                                    cartItemsContainer.innerHTML += itemHTML;
+                                });
+                                console.log("Itens exibidos no carrinho.");
+                            }
+        
+                            // Atualizar total do carrinho
+                            cartTotal.innerHTML = `<p>Total: €${data.total_amount}</p>`;
+                            console.log("Total do carrinho atualizado:", data.total_amount);
+                        })
+                        .catch(error => {
+                            console.error("Erro ao carregar dados do carrinho:", error);
+                            const cartItemsContainer = document.getElementById('cartItems');
+                            cartItemsContainer.innerHTML = "<p>Erro ao carregar o carrinho.</p>";
+                        });
+                });
+            } else {
+                console.error("Modal de carrinho (cartModal) não encontrado.");
+            }
         });
         
         const addToCartButtons = document.querySelectorAll('.btn-success');
@@ -791,6 +987,44 @@
                 document.getElementById('product_id').value = productId;
             });
         });
+
+        document.getElementById('quantityModal').addEventListener('show.bs.modal', function () {
+            const addToCartBtn = document.getElementById('addToCartBtn');
+            if (addToCartBtn) {
+                addToCartBtn.addEventListener('click', function () {
+                    const productId = document.getElementById('product_id').value;
+                    const quantity = document.getElementById('quantity').value;
+
+                    if (!productId || quantity < 1) {
+                        alert('Por favor, selecione uma quantidade válida.');
+                        return;
+                    }
+
+                    fetch('/add_to_cart', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ product_id: productId, quantity: quantity })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert('Produto adicionado ao carrinho!');
+                                const modal = bootstrap.Modal.getInstance(document.getElementById('quantityModal'));
+                                modal.hide();
+                                location.reload();
+                            } else {
+                                alert('Erro ao adicionar ao carrinho: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Erro ao adicionar ao carrinho:', error);
+                            alert('Erro ao adicionar ao carrinho.');
+                        });
+                });
+            }
+        });
+
+
         document.getElementById('cartModal').addEventListener('show.bs.modal', function () {
             // Fazer a requisição para obter os dados do carrinho
             fetch('/cart_data')  // Modifique esta URL conforme a sua rota
@@ -827,48 +1061,29 @@
                 });
         });
 
+        document.getElementById('gdpr-form').addEventListener('submit', function (e) {
+            e.preventDefault();
 
-        // Quando o botão de adicionar no modal for clicado
-        document.getElementById('addToCartBtn').addEventListener('click', function() {
-            const productId = document.getElementById('product_id').value;
-            const quantity = document.getElementById('quantity').value;
+            const consents = [
+                { type: 'email_marketing', text: 'Consent to receive marketing emails.', status: 'revoked' },
+                { type: 'push_notifications', text: 'Consent to receive push notifications.', status: 'granted' }
+            ];
 
-            console.log("Produto ID:", productId);  // Confirmação dos dados
-            console.log("Quantidade:", quantity);
-
-            // Verifique se a quantidade é válida
-            if (quantity < 1) {
-                alert("Por favor, selecione uma quantidade válida.");
-                return;
-            }
-
-            // Enviar os dados para o backend
-            fetch('/add_to_cart', {
+            fetch('/gdpr_popup', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    product_id: productId,
-                    quantity: quantity
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ consents })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Consentimentos salvos com sucesso.');
+                        window.location.href = '/';
+                    } else {
+                        alert('Erro ao salvar os consentimentos.');
+                    }
                 })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Produto adicionado ao carrinho!');
-                    // Fechar o modal após a adição ao carrinho
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('quantityModal'));
-                    modal.hide();
-                    location.reload();  // Atualiza a página para refletir as mudanças no carrinho
-                } else {
-                    alert('Erro ao adicionar ao carrinho: ' + data.message);  // Exibe mensagem detalhada
-                }
-            })
-            .catch(error => {
-                console.error('Erro:', error);
-                alert('Erro ao adicionar ao carrinho.');
-            });
+                .catch(error => console.error('Erro ao enviar consentimentos:', error));
         });
     </script>            
 </body>

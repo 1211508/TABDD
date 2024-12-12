@@ -1,0 +1,120 @@
+@ -0,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GDPR Consentimento</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Termos de Consentimento</h1>
+        <p>Por favor, leia e aceite os seguintes termos para continuar:</p>
+        <form id="gdprForm">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="emailMarketing" value="granted">
+                <label class="form-check-label" for="emailMarketing">Consentir em receber e-mails de marketing.</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="smsNotifications" value="granted">
+                <label class="form-check-label" for="smsNotifications">Consentir em receber notificações por SMS.</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="dataSharing" value="granted">
+                <label class="form-check-label" for="dataSharing">Consentir em compartilhar dados com parceiros de confiança.</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="pushNotifications" value="granted">
+                <label class="form-check-label" for="pushNotifications">Consentir em receber notificações push.</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="adPersonalization" value="granted">
+                <label class="form-check-label" for="adPersonalization">Consentir em personalizar anúncios com base no seu perfil.</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="cookiesUsage" value="granted">
+                <label class="form-check-label" for="cookiesUsage">Consentir no uso de cookies para análise de navegação.</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="satisfactionSurvey" value="granted">
+                <label class="form-check-label" for="satisfactionSurvey">Consentir em participar de pesquisas de satisfação.</label>
+            </div>
+            <button type="submit" class="btn btn-primary mt-3">Aceitar</button>
+        </form>        
+    </div>
+
+    <script>
+        document.getElementById('gdprForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const consents = [
+                {
+                    type: "email_marketing",
+                    text: "Consentir em receber e-mails de marketing.",
+                    date: new Date().toISOString().split('T')[0],
+                    status: document.getElementById('emailMarketing').checked ? "granted" : "revoked"
+                },
+                {
+                    type: "sms_notifications",
+                    text: "Consentir em receber notificações por SMS.",
+                    date: new Date().toISOString().split('T')[0],
+                    status: document.getElementById('smsNotifications').checked ? "granted" : "revoked"
+                },
+                {
+                    type: "data_sharing",
+                    text: "Consentir em compartilhar dados com parceiros de confiança.",
+                    date: new Date().toISOString().split('T')[0],
+                    status: document.getElementById('dataSharing').checked ? "granted" : "revoked"
+                },
+                {
+                    type: "push_notifications",
+                    text: "Consentir em receber notificações push.",
+                    date: new Date().toISOString().split('T')[0],
+                    status: document.getElementById('pushNotifications').checked ? "granted" : "revoked"
+                },
+                {
+                    type: "ad_personalization",
+                    text: "Consentir em personalizar anúncios com base no seu perfil.",
+                    date: new Date().toISOString().split('T')[0],
+                    status: document.getElementById('adPersonalization').checked ? "granted" : "revoked"
+                },
+                {
+                    type: "cookies_usage",
+                    text: "Consentir no uso de cookies para análise de navegação.",
+                    date: new Date().toISOString().split('T')[0],
+                    status: document.getElementById('cookiesUsage').checked ? "granted" : "revoked"
+                },
+                {
+                    type: "satisfaction_survey",
+                    text: "Consentir em participar de pesquisas de satisfação.",
+                    date: new Date().toISOString().split('T')[0],
+                    status: document.getElementById('satisfactionSurvey').checked ? "granted" : "revoked"
+                }
+
+            ];
+
+            fetch('/gdpr_popup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ consents: consents }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Consentimentos salvos.');
+                    window.location.href = '/';
+                } else {
+                    alert('Erro ao salvar os consentimentos. Tente novamente.');
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao enviar consentimentos:', error);
+                alert('Erro ao enviar consentimentos.');
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,23 +1,11 @@
+@ -0,0 +1,42 @@
+<!-- Cart page -->
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Carrinho de Compras</title>
-    <style>
-        button {
-            margin: 5px;
-            padding: 10px 15px;
-            border: 1px solid #ccc;
-            background-color: #f44336;
-            color: white;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #d32f2f;
-        }
-    </style>
 </head>
 <body>
     <h1>Carrinho de Compras</h1>
@@ -30,7 +18,6 @@
                     <th>Preço</th>
                     <th>Quantidade</th>
                     <th>Total</th>
-                    <th>Ações</th>  <!-- Coluna de ações -->
                 </tr>
             </thead>
             <tbody>
@@ -40,21 +27,6 @@
                         <td>€{{ item.price }}</td>
                         <td>{{ item.quantity }}</td>
                         <td>€{{ item.total_price }}</td>
-                        <td>
-                            <!-- Botão para remover uma unidade do produto -->
-                            <form action="/remove_from_cart" method="POST" style="display:inline;">
-                                <input type="hidden" name="product_code" value="{{ item.productCode }}">
-                                <input type="hidden" name="quantity" value="1">
-                                <button type="submit">Remover 1</button>
-                            </form>
-
-                            <!-- Botão para remover o produto completamente -->
-                            <form action="/remove_from_cart" method="POST" style="display:inline;">
-                                <input type="hidden" name="product_code" value="{{ item.productCode }}">
-                                <input type="hidden" name="quantity" value="{{ item.quantity }}">
-                                <button type="submit">Remover Tudo</button>
-                            </form>
-                        </td>
                     </tr>
                 {% endfor %}
             </tbody>

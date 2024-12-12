@@ -134,8 +134,8 @@ def login():
                 session['user_id'] = user[0]
                 session['user_name'] = user[1]
                 session['user_email'] = user[3]
-                session['user_role'] = user[8]
-                session['user_dob'] = user[7] 
+                session['user_role'] = user[11]
+                session['user_dob'] = user[10] 
                 flash("Login realizado com sucesso!", "success")
                 return redirect(url_for('index'))  
             else:
@@ -152,57 +152,61 @@ def logout():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    # Gerar accountID aleatório
-    account_id = random.randint(1000, 9999)  # Gera um ID entre 1000 e 9999
+    if request.method == 'POST':
+        # Dados do formulário
+        account_id = random.randint(1000, 9999)
+        user_code = random.randint(1000, 9999)
+        first_name = request.form['firstName']
+        last_name = request.form['lastName']
+        email = request.form['email']
+        password = request.form['password']
+        phone = request.form['phone']
+        address = request.form['address']
+        vat_number = request.form['vatNumber']
+        dob = request.form['dob']
+        role = request.form['role']
+        status = 'active'
 
-    # Outros dados do usuário
-    first_name = request.form['firstName']
-    last_name = request.form['lastName']
-    email = request.form['email']
-    password = request.form['password']
-    phone = request.form['phone']
-    address = request.form['address']
-    vat_number = request.form['vatNumber']  # Incluindo o campo VAT Number
-    dob = request.form['dob']
-    role = request.form['role']
-    status = 'active'  # Status padrão
-    # Aqui você pode obter a data atual para o campo 'dateOfBirth' se for necessário
+        oracle_conn = connect_oracle()
+        if oracle_conn:
+            cursor = oracle_conn.cursor()
+            try:
+                # Verificar se o e-mail já existe
+                cursor.execute("SELECT * FROM SystemUser WHERE email = :1", (email,))
+                existing_user = cursor.fetchone()
 
-    user_code = random.randint(1000, 9999)  # Gerar um código de usuário aleatório
+                if existing_user:
+                    flash("Este e-mail já está registrado. Por favor, faça o login.", "error")
+                    return redirect(url_for('login'))
 
-    oracle_conn = connect_oracle()
-    if oracle_conn:
-        cursor = oracle_conn.cursor()
-        try:
-            cursor.execute("SELECT * FROM SystemUser WHERE email = :1", (email,))
-            existing_user = cursor.fetchone()
+                # Inserir o novo usuário no banco de dados
+                cursor.execute("""
+                    INSERT INTO SystemUser (systemUserCode, firstName, lastName, email, phone, address, VATNumber, status, accountID, dateOfBirth, password, role)
+                    VALUES (:1, :2, :3, :4, :5, :6, :7, :8, :9, TO_DATE(:10, 'YYYY-MM-DD'), :11, :12)
+                """, (user_code, first_name, last_name, email, phone, address, vat_number, status, account_id, dob, password, role))
 
-            if existing_user:
-                flash("Este e-mail já está registrado. Por favor, faça o login.", "error")
-                return redirect(url_for('login'))
+                oracle_conn.commit()
 
-            cursor.execute("""
-                INSERT INTO SystemUser (systemUserCode, firstName, lastName, email, phone, address, VATNumber, status, accountID, dateOfBirth, password, role)
-                VALUES (:1, :2, :3, :4, :5, :6, :7, :8, :9, TO_DATE(:10, 'YYYY-MM-DD'), :11, :12)
-            """, (user_code, first_name, last_name, email, phone, address, vat_number, status, account_id, dob, password, role))
+                # Definir os dados na sessão
+                session['user_id'] = user_code
+                session['user_name'] = first_name
+                session['user_email'] = email
+                session['user_role'] = role
+                session['user_dob'] = dob
 
-            oracle_conn.commit()  # Confirma a transação
+                flash('Cadastro realizado com sucesso! Por favor, aceite os termos de GDPR.', 'success')
 
-            session['user_id'] = user_code 
-            session['user_name'] = first_name  
-            session['user_email'] = email
-            session['user_role'] = role 
-            session['user_dob'] = dob 
+                # Redirecionar para a página de GDPR
+                return redirect(url_for('gdpr_popup'))
 
-            flash('Cadastro realizado com sucesso! Agora você pode fazer login.', 'success')
-            return redirect(url_for('index'))  
+            except cx_Oracle.DatabaseError as e:
+                flash(f"Erro ao registrar usuário: {e}", 'error')
+            finally:
+                cursor.close()
+                oracle_conn.close()
 
-        except cx_Oracle.DatabaseError as e:
-            flash(f"Erro ao registrar usuário: {e}", 'error')
-        finally:
-            cursor.close()
-            oracle_conn.close()
     return render_template('register.html')
+
 
 @app.route('/product_details/<int:product_id>', methods=['GET'])
 def product_details(product_id):
@@ -299,8 +303,10 @@ def add_to_cart(SystemUserCode, productCode, productName, price, quantity):
         }
         db_2.cart.insert_one(cart)
 
-    quantity = int(quantity) 
+    # Certifique-se de que quantity seja um número (int)
+    quantity = int(quantity)  # Converte quantity para inteiro
 
+    # Verificar se o produto já está no carrinho
     product_found = False
     for item in cart['items']:
         if item['productCode'] == productCode:
@@ -323,6 +329,7 @@ def add_to_cart(SystemUserCode, productCode, productName, price, quantity):
     cart['total_amount'] = sum(item['total_price'] for item in cart['items'])
     print(f"Carrinho atualizado. Total do carrinho: €{cart['total_amount']}")  # Log
 
+    # Verificar se o total excede €2000
     if cart['total_amount'] > 2000:
         print("Carrinho excede €2000. Não foi adicionado.")  # Log
         return None
@@ -378,29 +385,17 @@ def remove_from_cart():
 
     return redirect(url_for('cart'))
 
-@app.route('/cart', methods=['GET', 'POST'])
+@app.route('/cart', methods=['GET'])
 def cart():
     if 'user_id' not in session:
-        flash("Por favor, faça login para visualizar o carrinho.", "error")
+        flash("Por favor, faça login para acessar o carrinho.", "error")
         return redirect(url_for('login'))
-
-    user_id = session['user_id']
-    
-    cart = db_2.cart.find_one({"SystemUserCode": user_id})
-
-    if not cart:
-        cart = {"items": [], "total_amount": 0}
-
-    total_price = cart['total_amount']
-
-    if total_price > 2000:
-        flash("O valor total do carrinho não pode exceder €2000.", "error")
-    
-    if request.method == 'POST':
-        pass
-    
-    return render_template('cart.html', cart_items=cart['items'], total_price=total_price)
-
+ 
+    cart = db_2.cart.find_one({"SystemUserCode": session['user_id']})
+    cart_items = cart['items'] if cart else []
+    total_price = cart['total_amount'] if cart else 0
+ 
+    return render_template('cart.html', cart_items=cart_items, total_price=total_price)
 @app.route('/cart_data', methods=['GET'])
 def cart_data():
     if 'user_id' not in session:
@@ -424,13 +419,15 @@ def add_to_cart_route():
         flash("Por favor, faça login para adicionar produtos ao carrinho.", "error")
         return redirect(url_for('login'))
 
-    data = request.get_json() 
-    print(f"Dados recebidos: {data}")  
+    data = request.get_json()  # Recebe os dados em formato JSON
+    print(f"Dados recebidos: {data}")  # Log para ver os dados recebidos no backend
 
+    # Verificar se todos os dados necessários estão presentes
     if 'product_id' not in data or 'quantity' not in data:
         print("Dados ausentes no request.")  # Log
         return jsonify({'success': False, 'message': 'Dados inválidos.'}), 400
 
+    # Conectar ao banco de dados e verificar o produto
     oracle_conn = connect_oracle()
     if oracle_conn:
         cursor = oracle_conn.cursor()
@@ -442,6 +439,7 @@ def add_to_cart_route():
         cursor.close()
         oracle_conn.close()
 
+        # Adicionar o produto ao carrinho
         cart = add_to_cart(session['user_id'], data['product_id'], product[0], product[1], data['quantity'])
         if not cart:
             return jsonify({'success': False, 'message': 'O valor total do carrinho excede o limite de €2000.'}), 400
@@ -498,70 +496,111 @@ def order_locations():
     return jsonify({'error': 'Erro ao conectar ao banco de dados.'}), 500
 
 
-@app.route('/manager_purchases', methods=['GET'])
-def manager_purchases():
-    # Obtenção dos parâmetros do formulário
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-    prep_time_comparison = request.args.get('prep_time_comparison')
-    days_diff_comparison = request.args.get('days_diff_comparison')
+def manager_purchases(start_date, end_date, prep_time_comparison, days_diff_comparison):
+    # Construa as condições dinamicamente
 
-    if not start_date or not end_date:
-        return jsonify({'error': 'Faltando intervalo de datas.'}), 400  # Erro mais claro
 
-    # Converte as datas de compra para o formato adequado
-    start_date = datetime.strptime(start_date, '%Y-%m-%d')
-    end_date = datetime.strptime(end_date, '%Y-%m-%d')
-
-    # Definir as condições baseadas nos filtros
-    prep_condition = "< 10" if prep_time_comparison == 'less' else ">= 10"
-    delivery_days_condition = "> 10" if days_diff_comparison == 'more' else "<= 10"
-
-    # A consulta SQL para buscar as ordens com base nos critérios
+    # Crie a consulta SQL
     query = f"""
-        SELECT o.orderCode, o.orderDate, o.totalAmount, o.status, o.deliveryAddress, 
-            o.deliveryDate, o.preparationTime, 
-            (o.deliveryDate - o.orderDate) AS daysDifference
+        SELECT o.orderCode, o.orderDate, o.totalAmount, o.status, o.deliveryAddress,
+               o.deliveryDate, o.preparationTime,
+               (o.deliveryDate - o.orderDate) AS daysDifference
         FROM Orders o
         WHERE o.orderDate BETWEEN TO_DATE(:start_date, 'YYYY-MM-DD') AND TO_DATE(:end_date, 'YYYY-MM-DD')
-        AND o.preparationTime {prep_condition} 
-        AND (o.deliveryDate - o.orderDate) {delivery_days_condition}
+          AND o.preparationTime <10
+          AND (o.deliveryDate - o.orderDate) >10
     """
-
-
-
+    print(query)
+ 
     # Conectar ao banco de dados
     oracle_conn = connect_oracle()
     if oracle_conn:
         cursor = oracle_conn.cursor()
-        cursor.execute(query, {'start_date': start_date, 'end_date': end_date})
-        purchases = cursor.fetchall()
-
-        # Verificar se existem compras que correspondem aos critérios
-        if not purchases:
-            return jsonify({'message': 'Nenhuma compra encontrada para os critérios selecionados.'}), 200
-
-        # Processar os resultados
-        purchases_data = []
-        for purchase in purchases:
-            purchases_data.append({
-                'orderCode': purchase[0],
-                'orderDate': purchase[1].strftime('%Y-%m-%d'),
-                'totalAmount': purchase[2],
-                'status': purchase[3],
-                'deliveryAddress': purchase[4],
-                'deliveryDate': purchase[5].strftime('%Y-%m-%d') if purchase[5] else None,
-                'preparationTime': purchase[6]
+        try:
+            # Execute a consulta com os parâmetros
+            cursor.execute(query, {
+                'start_date': start_date,
+                'end_date': end_date
             })
+ 
+            # Busque os resultados
+            purchases = cursor.fetchall()
+            print(purchases)
+            if not purchases:
+                return {"message": "Nenhuma compra encontrada para os critérios selecionados."}
+ 
+            # Processar os resultados
+            purchases_data = []
+            for purchase in purchases:
+                purchases_data.append({
+                    'orderCode': purchase[0],
+                    'orderDate': purchase[1].strftime('%Y-%m-%d'),
+                    'totalAmount': purchase[2],
+                    'status': purchase[3],
+                    'deliveryAddress': purchase[4],
+                    'deliveryDate': purchase[5].strftime('%Y-%m-%d') if purchase[5] else None,
+                    'preparationTime': purchase[6],
+                    'daysDifference': purchase[7]
+                })
+ 
+            return {"purchases": purchases_data}
+ 
+        finally:
+            cursor.close()
+            oracle_conn.close()
+ 
+    return {"error": "Erro ao conectar ao banco de dados."}
 
-        cursor.close()
-        oracle_conn.close()
 
-        # Retorna os resultados para o front-end
-        return jsonify({'purchases': purchases_data})
+@app.route('/manager_purchases', methods=['GET'])
+def manager_purchases_route():
+    # Obtenha os parâmetros da URL
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    prep_time_comparison = request.args.get('prep_time_comparison')
+    days_diff_comparison = request.args.get('days_diff_comparison')
+ 
+    # Verifique se todos os parâmetros estão presentes
+    if not all([start_date, end_date, prep_time_comparison, days_diff_comparison]):
+        return jsonify({'error': 'Parâmetros ausentes ou inválidos.'}), 400
+ 
+    # Chame a função principal com os parâmetros
+    result = manager_purchases(
+        start_date=start_date,
+        end_date=end_date,
+        prep_time_comparison=prep_time_comparison,
+        days_diff_comparison=days_diff_comparison
+    )
+ 
+@app.route('/gdpr_popup', methods=['GET', 'POST'])
+def gdpr_popup():
+    if 'user_id' not in session:
+        flash("Você precisa fazer login para acessar esta página.", "error")
+        return redirect(url_for('login'))  # Verifique a existência da sessão
 
-    else:
-        return jsonify({'error': 'Erro ao conectar ao banco de dados.'}), 500
+    if request.method == 'POST':
+        user_id = session['user_id']
+        try:
+            consents = request.json.get('consents', [])
+            if not consents:
+                return jsonify({'success': False, 'message': 'Nenhum consentimento fornecido.'}), 400
+
+            # Inserir os consentimentos no MongoDB
+            db.GDPR.update_one(
+                {"SystemUserCode": user_id},
+                {
+                    "$set": {"SystemUserCode": user_id},
+                    "$push": {"consent": {"$each": consents}}
+                },
+                upsert=True
+            )
+            flash("Consentimento salvo com sucesso.", "success")
+            return jsonify({'success': True, 'message': 'Consentimentos registrados com sucesso.'}), 200
+
+        except Exception as e:
+            return jsonify({'success': False, 'message': f"Erro ao salvar consentimentos: {str(e)}"}), 500
+
+    return render_template('gdpr_popup.html')
 
 if __name__ == '__main__':
     app.run(debug=True)

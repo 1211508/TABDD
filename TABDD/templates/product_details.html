@@ -36,21 +36,21 @@
         <!-- Atributos Físicos -->
         <h3>Atributos Físicos</h3>
         <ul>
-            <li><strong>Cor:</strong> {{ product.physicalAttributes.color }}</li>
-            <li><strong>Peso:</strong> {{ product.physicalAttributes.weight }}</li>
-            <li><strong>Altura:</strong> {{ product.physicalAttributes.height }}</li>
-            <li><strong>Largura:</strong> {{ product.physicalAttributes.width }}</li>
-            <li><strong>Profundidade:</strong> {{ product.physicalAttributes.depth }}</li>
+            <li><strong>Cor:</strong> {{ product.physicalAttributes[0] }}</li>
+            <li><strong>Peso:</strong> {{ product.physicalAttributes[1] }} kg</li>
+            <li><strong>Altura:</strong> {{ product.physicalAttributes[2] }} cm</li>
+            <li><strong>Largura:</strong> {{ product.physicalAttributes[3] }} cm</li>
+            <li><strong>Profundidade:</strong> {{ product.physicalAttributes[4] }} cm</li>
         </ul>
 
         <!-- Atributos Técnicos -->
         <h3>Atributos Técnicos</h3>
         <ul>
-            <li><strong>Processador:</strong> {{ product.technicalAttributes.processor }}</li>
-            <li><strong>RAM:</strong> {{ product.technicalAttributes.ram }}</li>
-            <li><strong>Armazenamento:</strong> {{ product.technicalAttributes.storage }}</li>
-            <li><strong>Vida da Bateria:</strong> {{ product.technicalAttributes.batteryLife }}</li>
-            <li><strong>Garantia:</strong> {{ product.technicalAttributes.warranty }}</li>
+            <li><strong>Processador:</strong> {{ product.technicalAttributes[0] }}</li>
+            <li><strong>RAM:</strong> {{ product.technicalAttributes[1] }}</li>
+            <li><strong>Armazenamento:</strong> {{ product.technicalAttributes[2] }}</li>
+            <li><strong>Vida da Bateria:</strong> {{ product.technicalAttributes[3] }}</li>
+            <li><strong>Garantia:</strong> {{ product.technicalAttributes[4] }}</li>
         </ul>
 
         <!-- Avaliações -->
