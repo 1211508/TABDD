@@ -1,0 +1,146 @@
+CREATE TABLE Orders (
+    orderCode INTEGER PRIMARY KEY,
+    orderDate DATE NOT NULL,
+    totalAmount DECIMAL(10, 2) NOT NULL,
+    status VARCHAR2(20) NOT NULL,
+    deliveryAddress VARCHAR2(255) NOT NULL,
+    systemUserCode INTEGER NOT NULL,
+    deliveryDate DATE,
+    preparationTime INTEGER,
+    FOREIGN KEY (systemUserCode) REFERENCES SystemUser(systemUserCode)
+);
+
+drop table Orders;
+
+select * from Orders;
+
+-- Inserções de ordens entre 17 de junho e 17 de agosto com tempos de preparação variados
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (1, TO_DATE('2024-06-17', 'YYYY-MM-DD'), 150.75, 'InShipping', 'Rua A, 123, Lisboa', 1000, NULL, 8);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (2, TO_DATE('2024-06-18', 'YYYY-MM-DD'), 200.50, 'InShipping', 'Rua B, 456, Porto', 1001, NULL, 12);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (3, TO_DATE('2024-06-19', 'YYYY-MM-DD'), 180.60, 'Delivered', 'Rua C, 789, Coimbra', 1002, TO_DATE('2024-06-19', 'YYYY-MM-DD'), 6);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (4, TO_DATE('2024-06-20', 'YYYY-MM-DD'), 250.30, 'InShipping', 'Rua D, 1011, Faro', 1003, NULL, 15);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (5, TO_DATE('2024-06-21', 'YYYY-MM-DD'), 175.20, 'Shipped', 'Rua E, 1213, Braga', 1004, TO_DATE('2024-06-21', 'YYYY-MM-DD'), 9);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (6, TO_DATE('2024-06-22', 'YYYY-MM-DD'), 120.45, 'InShipping', 'Rua F, 1415, Aveiro', 1005, NULL, 18);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (7, TO_DATE('2024-06-23', 'YYYY-MM-DD'), 195.30, 'Delivered', 'Rua G, 1617, Évora', 1006, TO_DATE('2024-06-23', 'YYYY-MM-DD'), 4);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (8, TO_DATE('2024-06-24', 'YYYY-MM-DD'), 220.70, 'InShipping', 'Rua H, 1819, Viseu', 1007, NULL, 10);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (9, TO_DATE('2024-06-25', 'YYYY-MM-DD'), 300.00, 'InShipping', 'Rua I, 2021, Santarém', 1008, NULL, 11);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (10, TO_DATE('2024-06-26', 'YYYY-MM-DD'), 230.50, 'Delivered', 'Rua J, 2223, Leiria', 1009, TO_DATE('2024-06-26', 'YYYY-MM-DD'), 8);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (11, TO_DATE('2024-06-27', 'YYYY-MM-DD'), 195.75, 'InShipping', 'Rua K, 2425, Lisboa', 1010, NULL, 14);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (12, TO_DATE('2024-06-28', 'YYYY-MM-DD'), 160.20, 'Shipped', 'Rua L, 2627, Porto', 1011, TO_DATE('2024-06-28', 'YYYY-MM-DD'), 7);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (13, TO_DATE('2024-06-29', 'YYYY-MM-DD'), 175.10, 'Delivered', 'Rua M, 2829, Coimbra', 1012, TO_DATE('2024-06-29', 'YYYY-MM-DD'), 3);
+
+-- Mais inserções com datas entre junho e agosto
+-- Algumas ordens terão mais de 10 horas de preparação, outras menos de 10 horas
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (14, TO_DATE('2024-07-01', 'YYYY-MM-DD'), 300.20, 'InShipping', 'Rua N, 3031, Braga', 1013, NULL, 13);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (15, TO_DATE('2024-07-02', 'YYYY-MM-DD'), 250.75, 'Delivered', 'Rua O, 3233, Aveiro', 1014, TO_DATE('2024-07-02', 'YYYY-MM-DD'), 6);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (16, TO_DATE('2024-07-03', 'YYYY-MM-DD'), 275.90, 'InShipping', 'Rua P, 3435, Évora', 1015, NULL, 9);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (17, TO_DATE('2024-07-04', 'YYYY-MM-DD'), 350.40, 'InShipping', 'Rua Q, 3637, Viseu', 1016, NULL, 12);
+
+-- Mais ordens até 17 de agosto
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (18, TO_DATE('2024-07-05', 'YYYY-MM-DD'), 230.15, 'Shipped', 'Rua R, 3839, Santarém', 1017, TO_DATE('2024-07-05', 'YYYY-MM-DD'), 10);
+
+-- Continue preenchendo as ordens de forma semelhante para completar o intervalo
+-- Continuando com mais inserções para as ordens entre 17 de junho e 17 de agosto
+
+-- 19 de julho a 17 de agosto
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (19, TO_DATE('2024-07-06', 'YYYY-MM-DD'), 280.50, 'Delivered', 'Rua S, 4041, Leiria', 1018, TO_DATE('2024-07-06', 'YYYY-MM-DD'), 5);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (20, TO_DATE('2024-07-07', 'YYYY-MM-DD'), 300.10, 'Shipped', 'Rua T, 4243, Lisboa', 1019, TO_DATE('2024-07-07', 'YYYY-MM-DD'), 9);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (21, TO_DATE('2024-07-08', 'YYYY-MM-DD'), 250.25, 'InShipping', 'Rua U, 4445, Porto', 1020, NULL, 15);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (22, TO_DATE('2024-07-09', 'YYYY-MM-DD'), 280.60, 'Delivered', 'Rua V, 4647, Coimbra', 1021, TO_DATE('2024-07-09', 'YYYY-MM-DD'), 6);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (23, TO_DATE('2024-07-10', 'YYYY-MM-DD'), 350.80, 'InShipping', 'Rua W, 4849, Braga', 1022, NULL, 11);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (24, TO_DATE('2024-07-11', 'YYYY-MM-DD'), 220.90, 'Delivered', 'Rua X, 5051, Aveiro', 1023, TO_DATE('2024-07-11', 'YYYY-MM-DD'), 7);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (25, TO_DATE('2024-07-12', 'YYYY-MM-DD'), 275.15, 'Shipped', 'Rua Y, 5253, Évora', 1024, TO_DATE('2024-07-12', 'YYYY-MM-DD'), 13);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (26, TO_DATE('2024-07-13', 'YYYY-MM-DD'), 250.35, 'InShipping', 'Rua Z, 5455, Viseu', 1025, NULL, 9);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (27, TO_DATE('2024-07-14', 'YYYY-MM-DD'), 220.75, 'Delivered', 'Rua AA, 5657, Santarém', 1026, TO_DATE('2024-07-14', 'YYYY-MM-DD'), 6);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (28, TO_DATE('2024-07-15', 'YYYY-MM-DD'), 230.60, 'InShipping', 'Rua AB, 5859, Leiria', 1027, NULL, 14);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (29, TO_DATE('2024-07-16', 'YYYY-MM-DD'), 195.30, 'Shipped', 'Rua AC, 6061, Lisboa', 1028, TO_DATE('2024-07-16', 'YYYY-MM-DD'), 8);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (30, TO_DATE('2024-07-17', 'YYYY-MM-DD'), 210.40, 'Delivered', 'Rua AD, 6263, Porto', 1029, TO_DATE('2024-07-17', 'YYYY-MM-DD'), 7);
+
+-- Continuando com mais ordens para o mês de agosto
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (31, TO_DATE('2024-08-01', 'YYYY-MM-DD'), 220.90, 'InShipping', 'Rua AE, 6465, Coimbra', 1030, NULL, 11);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (32, TO_DATE('2024-08-02', 'YYYY-MM-DD'), 230.75, 'Delivered', 'Rua AF, 6667, Braga', 1031, TO_DATE('2024-08-02', 'YYYY-MM-DD'), 9);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (33, TO_DATE('2024-08-03', 'YYYY-MM-DD'), 240.40, 'InShipping', 'Rua AG, 6869, Aveiro', 1032, NULL, 12);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (34, TO_DATE('2024-08-04', 'YYYY-MM-DD'), 270.20, 'Shipped', 'Rua AH, 7071, Évora', 1033, TO_DATE('2024-08-04', 'YYYY-MM-DD'), 10);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (35, TO_DATE('2024-08-05', 'YYYY-MM-DD'), 300.60, 'InShipping', 'Rua AI, 7273, Viseu', 1034, NULL, 16);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (36, TO_DATE('2024-08-06', 'YYYY-MM-DD'), 250.50, 'Delivered', 'Rua AJ, 7475, Santarém', 1035, TO_DATE('2024-08-06', 'YYYY-MM-DD'), 5);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (37, TO_DATE('2024-08-07', 'YYYY-MM-DD'), 260.90, 'Shipped', 'Rua AK, 7677, Leiria', 1036, TO_DATE('2024-08-07', 'YYYY-MM-DD'), 14);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (38, TO_DATE('2024-07-08', 'YYYY-MM-DD'), 350.75, 'InShipping', 'Rua AL, 7879, Lisboa', 1037, TO_DATE('2024-07-23', 'YYYY-MM-DD'), 9);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (39, TO_DATE('2024-08-09', 'YYYY-MM-DD'), 230.10, 'Delivered', 'Rua AM, 8081, Porto', 1038, TO_DATE('2024-08-09', 'YYYY-MM-DD'), 8);
+
+INSERT INTO Orders (orderCode, orderDate, totalAmount, status, deliveryAddress, systemUserCode, deliveryDate, preparationTime) 
+VALUES (40, TO_DATE('2024-08-10', 'YYYY-MM-DD'), 270.30, 'InShipping', 'Rua AN, 8283, Coimbra', 1039, NULL, 10);

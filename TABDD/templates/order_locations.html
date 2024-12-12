@@ -9,11 +9,11 @@
 <body>
     <div class="container">
         <h2>Localizações das Ordens</h2>
-        <form method="POST">
-            <label for="selected_datetime">Selecione a Data e Hora:</label>
-            <input type="text" name="selected_datetime" id="selected_datetime" placeholder="YYYY-MM-DD HH:MM:SS" required>
-            <button type="submit" class="btn btn-primary">Buscar Localizações</button>
-        </form>
+        <form method="GET" action="/order_locations">
+            <label for="datetime-picker">Selecione a Data e Hora:</label>
+            <input type="datetime-local" id="datetime-picker" name="selected_datetime" class="form-control mb-3">
+            <button id="search-locations-btn" class="btn btn-primary w-100">Buscar Localizações</button>
+        </form>        
 
         {% if order_locations %}
         <h3>Ordens na Data e Hora: {{ selected_datetime }}</h3>

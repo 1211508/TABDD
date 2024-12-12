@@ -69,7 +69,12 @@
                     <a href="/logout" class="btn btn-outline-danger">Sair</a>
                     {% if user_role == 'delivery order manager' %}
                         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#orderLocationModal">
-                            Localizar Ordens
+                            Localizar Orders
+                        </button>
+                    {% endif %}
+                    {% if user_role == 'manager' %}
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#orderViewModal">
+                            Ver Orders
                         </button>
                     {% endif %}
                 {% else %}
@@ -83,6 +88,71 @@
             </div>
         </div>
     </nav>
+
+    <!-- Modal para o Manager Localizar Compras -->
+    <div class="modal fade" id="orderViewModal" tabindex="-1" aria-labelledby="orderViewModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="orderViewModalLabel">Filtrar Orders</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Formulário para filtrar compras -->
+                    <form id="filter-form">
+                        <div class="mb-3">
+                            <label for="start_date" class="form-label">Data de Compra Inicial:</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="end_date" class="form-label">Data de Compra Final:</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="prep_time_comparison" class="form-label">Tempo de Preparação:</label>
+                            <select class="form-select" id="prep_time_comparison" name="prep_time_comparison">
+                                <option value="less">Menos de 10 horas</option>
+                                <option value="more">Mais de 10 horas</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="days_diff_comparison" class="form-label">Diferença de Dias (Compra x Entrega):</label>
+                            <select class="form-select" id="days_diff_comparison" name="days_diff_comparison">
+                                <option value="more">Mais de 10 dias</option>
+                                <option value="less">Menos de 10 dias</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">Filtrar Compras</button>
+                    </form>
+
+                    <!-- Exibição das ordens encontradas -->
+                    <div id="no-orders-message" class="mt-3 text-danger" style="display:none;">Nenhuma compra encontrada para os critérios selecionados.</div>
+                    <ul id="orders-list" class="mt-3"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Perfil do Usuário -->
+    <div class="modal" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="profileModalLabel">Informações do Usuário</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Nome:</strong> {{ user_name }}</p>
+                    <p><strong>Email:</strong> {{ user_email }}</p>
+                    <p><strong>Data de Nascimento:</strong> {{ user_dob }}</p>
+                    <p><strong>Role:</strong> {{ user_role }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal para Localizar Ordens -->
     <div class="modal fade" id="orderLocationModal" tabindex="-1" aria-labelledby="orderLocationModalLabel" aria-hidden="true">
@@ -140,7 +210,7 @@
                             </form>
                         </div>
 
-                        <!-- Formulário de Registro -->
+                        <!-- Formulário de Registo -->
                         <div class="tab-pane fade" id="register" role="tabpanel" aria-labelledby="register-tab">
                             <form action="/register" method="POST">
                                 <div class="mb-3">
@@ -168,20 +238,24 @@
                                     <input type="text" class="form-control" id="address" name="address">
                                 </div>
                                 <div class="mb-3">
+                                    <label for="vatNumber" class="form-label">Número de Contribuinte (VAT)</label>
+                                    <input type="text" class="form-control" id="vatNumber" name="vatNumber">
+                                </div>
+                                <div class="mb-3">
                                     <label for="dob" class="form-label">Data de Nascimento</label>
                                     <input type="date" class="form-control" id="dob" name="dob" required>
                                 </div>
                                 <div class="mb-3">
                                     <label for="role" class="form-label">Selecione o Papel</label>
                                     <select class="form-select" id="role" name="role" required>
-                                        <option value="customer">Cliente</option>
-                                        <option value="manager">Gerente</option>
-                                        <option value="warehouse manager">Gerente de Armazém</option>
-                                        <option value="delivery order manager">Gerente de Pedidos de Entrega</option>
+                                        <option value="customer">customer</option>
+                                        <option value="manager">manager</option>
+                                        <option value="warehouse manager">warehouse manager</option>
+                                        <option value="delivery order manager">delivery order manager</option>
                                     </select>
                                 </div>
-                                <button type="submit" class="btn btn-primary">Registrar</button>
-                            </form>
+                                <button type="submit" class="btn btn-primary">Cadastrar</button>
+                            </form>                                                        
                         </div>
                     </div>
                 </div>
@@ -260,15 +334,14 @@
 
     <!-- Exibição dos produtos -->
     <h1 class="product-title">Produtos</h1>
-    <div class="row products-row">
+    <div class="row">
         {% for product in products %}
-            <div class="col-md-3">
-                <div class="product-card">
-                    <img src="{{ product['productImage'] | default('image_url_default') }}" class="card-img-top" alt="{{ product['productName'] }}"/>
+            <div class="col-md-3 mb-4">
+                <div class="card">
+                    <img src="{{ product['productImage'] | default('image_url_default') }}" class="card-img-top" alt="{{ product['productName'] }}">
                     <div class="card-body">
                         <h5 class="card-title">{{ product['productName'] }}</h5>
                         <p class="card-text">€{{ product['price'] }}</p>
-                        <!-- Botão de adicionar ao carrinho -->
                         <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#quantityModal" data-product-id="{{ product['productCode'] }}">
                             Adicionar ao Carrinho
                         </button>
@@ -279,7 +352,7 @@
                 </div>
             </div>
         {% endfor %}
-    </div>
+    </div>  
 
     <!-- Paginador para navegar entre as páginas -->
     <div class="d-flex justify-content-center mt-4">
@@ -346,7 +419,7 @@
                     <p><strong>Nome:</strong> <span id="product-name"></span></p>
                     <p><strong>Preço:</strong> €<span id="product-price"></span></p>
                     <p><strong>Fornecedor:</strong> <span id="product-supplier"></span></p>
-                    <p><strong>Quantidade em Estoque:</strong> <span id="product-stock"></span></p>
+                    <p><strong>Quantidade em Stock:</strong> <span id="product-stock"></span></p>
 
                     <h6>Atributos Físicos</h6>
                     <ul id="product-physical-attributes"></ul>
@@ -423,8 +496,6 @@
             </div>
         </div>
     </div>
-    
-
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -436,31 +507,39 @@
     <script>
         // Passar os dados do produto para o modal
         document.getElementById('productDetailsModal').addEventListener('show.bs.modal', function(event) {
-            const button = event.relatedTarget; // Botão que ativou o modal
+            const button = event.relatedTarget; // O botão que disparou o modal
             const productId = button.getAttribute('data-product-id'); // ID do produto
-            
-            // Requisição para obter detalhes do produto (Oracle)
+
+            // Requisição para obter os dados do produto
             fetch(`/product_details/${productId}`)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        console.error('Falha na requisição:', response.statusText);
+                        throw new Error('Erro na requisição');
+                    }
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('Dados do produto:', data);  // Verifique se está imprimindo os dados
+
                     // Preencher os dados do produto no modal
                     document.getElementById('product-name').textContent = data.productName;
                     document.getElementById('product-price').textContent = data.price;
-                    document.getElementById('product-supplier').textContent = data.supplier;
+                    document.getElementById('product-supplier').textContent = data.supplierCode;
                     document.getElementById('product-stock').textContent = data.stock;
 
-                    // Preencher atributos físicos
-                    let physicalAttributesList = document.getElementById('product-physical-attributes');
+                    // Preencher os atributos físicos
+                    const physicalAttributesList = document.getElementById('product-physical-attributes');
                     physicalAttributesList.innerHTML = `
                         <li><strong>Cor:</strong> ${data.physicalAttributes.color}</li>
-                        <li><strong>Peso:</strong> ${data.physicalAttributes.weight} kg</li>
-                        <li><strong>Altura:</strong> ${data.physicalAttributes.height} cm</li>
-                        <li><strong>Largura:</strong> ${data.physicalAttributes.width} cm</li>
-                        <li><strong>Profundidade:</strong> ${data.physicalAttributes.depth} cm</li>
+                        <li><strong>Peso:</strong> ${data.physicalAttributes.weight}</li>
+                        <li><strong>Altura:</strong> ${data.physicalAttributes.height}</li>
+                        <li><strong>Largura:</strong> ${data.physicalAttributes.width}</li>
+                        <li><strong>Profundidade:</strong> ${data.physicalAttributes.depth}</li>
                     `;
 
-                    // Preencher atributos técnicos
-                    let technicalAttributesList = document.getElementById('product-technical-attributes');
+                    // Preencher os atributos técnicos
+                    const technicalAttributesList = document.getElementById('product-technical-attributes');
                     technicalAttributesList.innerHTML = `
                         <li><strong>Processador:</strong> ${data.technicalAttributes.processor}</li>
                         <li><strong>RAM:</strong> ${data.technicalAttributes.ram}</li>
@@ -469,28 +548,102 @@
                         <li><strong>Garantia:</strong> ${data.technicalAttributes.warranty}</li>
                     `;
 
-                    // Requisição para obter avaliações do produto (MongoDB)
-                    fetch(`/get_reviews/${productId}`)
-                        .then(response => response.json())
-                        .then(reviewData => {
-                            let reviewsList = document.getElementById('product-reviews');
-                            reviewsList.innerHTML = ''; // Limpa a lista antes de adicionar novos dados
+                    // Preencher as avaliações
+                    const reviewsList = document.getElementById('product-reviews');
+                    reviewsList.innerHTML = ''; // Limpa as avaliações existentes
 
-                            if (reviewData.reviews && reviewData.reviews.length > 0) {
-                                reviewData.reviews.forEach(review => {
-                                    const reviewItem = document.createElement('li');
-                                    reviewItem.textContent = `Nota: ${review.rating} - Comentário: ${review.comment} - Cliente: ${review.user.name}`;
-                                    reviewsList.appendChild(reviewItem);
-                                });
-                            } else {
-                                reviewsList.innerHTML = '<li>Não há avaliações para este produto.</li>';
-                            }
+                    if (data.ratings && data.ratings.length > 0) {
+                        data.ratings.forEach(review => {
+                            const reviewItem = document.createElement('li');
+                            reviewItem.textContent = `Nota: ${review.rating} - Comentário: ${review.comment} - Cliente: ${review.user.name}`;
+                            reviewsList.appendChild(reviewItem);
                         });
+                    } else {
+                        reviewsList.innerHTML = '<li>Não há avaliações para este produto.</li>';
+                    }
                 })
                 .catch(err => {
-                    console.error('Erro ao carregar detalhes do produto:', err);
+                    console.error('Erro ao carregar os detalhes do produto:', err);
                 });
         });
+
+        document.getElementById('filter-form').addEventListener('submit', function(event) {
+            event.preventDefault(); // Impede o envio tradicional do formulário
+
+            // Captura os valores dos campos do formulário
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            const prepTimeComparison = document.getElementById('prep_time_comparison').value;
+            const daysDiffComparison = document.getElementById('days_diff_comparison').value;
+
+            // Verifique se todos os campos obrigatórios foram preenchidos
+            if (!startDate || !endDate) {
+                alert("Por favor, selecione as datas.");
+                return;
+            }
+
+            // Log para verificar os dados antes de enviar
+            console.log('Dados enviados para o servidor:', {startDate, endDate, prepTimeComparison, daysDiffComparison});
+
+            // Realiza a requisição AJAX para o servidor
+            fetch(`/manager_purchases?start_date=${startDate}&end_date=${endDate}&prep_time_comparison=${prepTimeComparison}&days_diff_comparison=${daysDiffComparison}`, {
+                method: 'GET'
+            })
+            .then(response => response.json())
+            .then(data => {
+                const ordersList = document.getElementById('orders-list');
+                const noOrdersMessage = document.getElementById('no-orders-message');
+
+                // Limpa os resultados antigos
+                ordersList.innerHTML = '';
+                noOrdersMessage.style.display = 'none';
+
+                // Verifica se foram encontradas ordens
+                if (data.orders && data.orders.length > 0) {
+                    data.orders.forEach(order => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = `Código do Pedido: ${order.orderCode}, Data do Pedido: ${order.orderDate}, Tempo de Preparação: ${order.preparationTime} horas, Dias até Entrega: ${order.deliveryDays}`;
+                        ordersList.appendChild(listItem);
+                    });
+                } else {
+                    noOrdersMessage.style.display = 'block'; // Exibe a mensagem caso não encontre ordens
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao buscar ordens:', error);
+                alert('Erro ao buscar ordens.');
+            });
+        });
+
+        document.getElementById('order-manager-form').addEventListener('submit', function(event) {
+            event.preventDefault(); // Previne o envio padrão do formulário
+
+            // Obtenha os dados do formulário
+            const start_date = document.getElementById('start_date').value;
+            const end_date = document.getElementById('end_date').value;
+            const prep_time_comparison = document.getElementById('prep_time_comparison').value;
+            const days_diff_comparison = document.getElementById('days_diff_comparison').value;
+
+            // Verifique os valores do formulário antes de fazer a requisição
+            console.log('Start Date:', start_date);
+            console.log('End Date:', end_date);
+            console.log('Preparation Time Comparison:', prep_time_comparison);
+            console.log('Days Difference Comparison:', days_diff_comparison);
+
+            // Requisição ao servidor para obter as ordens
+            fetch(`/manager_purchases?start_date=${start_date}&end_date=${end_date}&prep_time_comparison=${prep_time_comparison}&days_diff_comparison=${days_diff_comparison}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Verifique a resposta do servidor
+                    console.log('Resposta do servidor:', data);
+                    // Lógica para processar os resultados e exibir
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar ordens:', error);
+                    alert('Erro ao buscar ordens.');
+                });
+        });
+
 
         document.getElementById('search-locations-btn').addEventListener('click', function() {
             const selectedDatetime = document.getElementById('datetime-picker').value;

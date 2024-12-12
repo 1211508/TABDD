@@ -7,37 +7,49 @@
 <body>
     <h2>Cadastro de Usuário</h2>
     <form action="/register" method="POST">
-        <label for="firstName">Primeiro Nome:</label>
-        <input type="text" id="firstName" name="firstName" required><br><br>
-        
-        <label for="lastName">Sobrenome:</label>
-        <input type="text" id="lastName" name="lastName" required><br><br>
-        
-        <label for="email">E-mail:</label>
-        <input type="email" id="email" name="email" required><br><br>
-
-        <label for="password">Senha:</label>
-        <input type="password" id="password" name="password" required><br><br>
-        
-        <label for="phone">Telefone:</label>
-        <input type="text" id="phone" name="phone" required><br><br>
-        
-        <label for="address">Endereço:</label>
-        <input type="text" id="address" name="address" required><br><br>
-        
-        <label for="dob">Data de Nascimento:</label>
-        <input type="date" id="dob" name="dob" required><br><br>
-        
-        <label for="role">Selecione a Role:</label>
-        <select id="role" name="role" required>
-            <option value="customer">Customer</option>
-            <option value="Warehouse Manager">Warehouse Manager</option>
-            <option value="Delivery Order Manager">Delivery Order Manager</option>
-            <option value="Manager">Manager</option>
-        </select><br><br>
-
-        <button type="submit">Cadastrar</button>
-    </form>
+        <div class="mb-3">
+            <label for="firstName" class="form-label">Primeiro Nome</label>
+            <input type="text" class="form-control" id="firstName" name="firstName" required>
+        </div>
+        <div class="mb-3">
+            <label for="lastName" class="form-label">Sobrenome</label>
+            <input type="text" class="form-control" id="lastName" name="lastName" required>
+        </div>
+        <div class="mb-3">
+            <label for="email" class="form-label">E-mail</label>
+            <input type="email" class="form-control" id="email" name="email" required>
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">Senha</label>
+            <input type="password" class="form-control" id="password" name="password" required>
+        </div>
+        <div class="mb-3">
+            <label for="phone" class="form-label">Telefone</label>
+            <input type="text" class="form-control" id="phone" name="phone">
+        </div>
+        <div class="mb-3">
+            <label for="address" class="form-label">Endereço</label>
+            <input type="text" class="form-control" id="address" name="address">
+        </div>
+        <div class="mb-3">
+            <label for="vatNumber" class="form-label">Número de Contribuinte (VAT)</label>
+            <input type="text" class="form-control" id="vatNumber" name="vatNumber">
+        </div>
+        <div class="mb-3">
+            <label for="dob" class="form-label">Data de Nascimento</label>
+            <input type="date" class="form-control" id="dob" name="dob" required>
+        </div>
+        <div class="mb-3">
+            <label for="role" class="form-label">Selecione o Papel</label>
+            <select class="form-select" id="role" name="role" required>
+                <option value="customer">Cliente</option>
+                <option value="manager">Gerente</option>
+                <option value="warehouse manager">Gerente de Armazém</option>
+                <option value="delivery order manager">Gerente de Pedidos de Entrega</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Cadastrar</button>
+    </form>       
     <p>Já tem uma conta? <a href="/login">Faça login aqui</a></p>
 </body>
 </html>

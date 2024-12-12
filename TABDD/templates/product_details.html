@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ product[1] }} - Detalhes</title>
+    <title>{{ product.productName }} - Detalhes</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/styles.css">
 </head>
@@ -27,30 +27,42 @@
 
     <!-- Detalhes do Produto -->
     <div class="container mt-5">
-        <h1>{{ product[1] }}</h1>
-        <p><strong>Categoria:</strong> {{ product[2] }}</p>
-        <p><strong>Preço:</strong> €{{ product[3] }}</p>
-        <p><strong>Fornecedor:</strong> {{ product[5] }}</p>
-        <p><strong>Quantidade em Estoque:</strong> {{ product[4] }}</p>
+        <h1>{{ product.productName }}</h1>
+        <p><strong>Categoria:</strong> {{ product.categoryName }}</p>
+        <p><strong>Preço:</strong> €{{ product.price }}</p>
+        <p><strong>Fornecedor:</strong> {{ product.supplierCode }}</p>
+        <p><strong>Quantidade em Estoque:</strong> {{ product.stock }}</p>
 
         <!-- Atributos Físicos -->
         <h3>Atributos Físicos</h3>
         <ul>
-            <li><strong>Cor:</strong> {{ physical_attributes[0] }}</li>
-            <li><strong>Peso:</strong> {{ physical_attributes[1] }} kg</li>
-            <li><strong>Altura:</strong> {{ physical_attributes[2] }} cm</li>
-            <li><strong>Largura:</strong> {{ physical_attributes[3] }} cm</li>
-            <li><strong>Profundidade:</strong> {{ physical_attributes[4] }} cm</li>
+            <li><strong>Cor:</strong> {{ product.physicalAttributes.color }}</li>
+            <li><strong>Peso:</strong> {{ product.physicalAttributes.weight }}</li>
+            <li><strong>Altura:</strong> {{ product.physicalAttributes.height }}</li>
+            <li><strong>Largura:</strong> {{ product.physicalAttributes.width }}</li>
+            <li><strong>Profundidade:</strong> {{ product.physicalAttributes.depth }}</li>
         </ul>
 
         <!-- Atributos Técnicos -->
         <h3>Atributos Técnicos</h3>
         <ul>
-            <li><strong>Processador:</strong> {{ technical_attributes[0] }}</li>
-            <li><strong>RAM:</strong> {{ technical_attributes[1] }}</li>
-            <li><strong>Armazenamento:</strong> {{ technical_attributes[2] }}</li>
-            <li><strong>Vida da Bateria:</strong> {{ technical_attributes[3] }}</li>
-            <li><strong>Garantia:</strong> {{ technical_attributes[4] }}</li>
+            <li><strong>Processador:</strong> {{ product.technicalAttributes.processor }}</li>
+            <li><strong>RAM:</strong> {{ product.technicalAttributes.ram }}</li>
+            <li><strong>Armazenamento:</strong> {{ product.technicalAttributes.storage }}</li>
+            <li><strong>Vida da Bateria:</strong> {{ product.technicalAttributes.batteryLife }}</li>
+            <li><strong>Garantia:</strong> {{ product.technicalAttributes.warranty }}</li>
+        </ul>
+
+        <!-- Avaliações -->
+        <h3>Avaliações</h3>
+        <ul>
+            {% if product.ratings %}
+                {% for review in product.ratings %}
+                    <li><strong>{{ review.user.name }}:</strong> {{ review.comment }} ({{ review.rating }} estrelas)</li>
+                {% endfor %}
+            {% else %}
+                <li>Sem avaliações disponíveis.</li>
+            {% endif %}
         </ul>
 
         <a href="/" class="btn btn-secondary">Voltar</a>
