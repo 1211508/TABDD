@@ -451,50 +451,50 @@ def add_to_cart_route():
 @app.route('/order_locations', methods=['GET'])
 def order_locations():
     if 'user_role' not in session or session['user_role'] != 'delivery order manager':
-        flash("Você não tem permissão para acessar essa página.", "error")
-        return redirect(url_for('index'))
+        return jsonify({'error': 'Você não tem permissão para acessar essa página.'}), 403
 
     selected_datetime = request.args.get('selected_datetime')
+    if not selected_datetime:
+        return jsonify({'error': 'Data e hora não fornecidas.'}), 400
 
     try:
-        # Ajuste para remover o 'T' e garantir o formato correto
-        selected_datetime = selected_datetime.replace('T', ' ')  # Trocar T por espaço
-        selected_datetime = datetime.strptime(selected_datetime, '%Y-%m-%d %H:%M')  # Converter para datetime
+        # Ajuste o formato da data e hora recebida
+        selected_datetime = selected_datetime.replace('T', ' ')
+        selected_datetime = datetime.strptime(selected_datetime, '%Y-%m-%d %H:%M')
     except ValueError:
         return jsonify({'error': 'Formato de data e hora inválido.'}), 400
 
     oracle_conn = connect_oracle()
-    if oracle_conn:
-        cursor = oracle_conn.cursor()
+    if not oracle_conn:
+        return jsonify({'error': 'Erro ao conectar ao banco de dados.'}), 500
 
-        cursor.execute("""
-            SELECT o.orderCode, o.orderDate, ol.location, ol.timestamp
-            FROM OrderLocation ol
-            JOIN Orders o ON ol.orderCode = o.orderCode
-            WHERE TRUNC(ol.timestamp) = TRUNC(:selected_datetime)
-        """, {'selected_datetime': selected_datetime})
+    cursor = oracle_conn.cursor()
+    query = """
+        SELECT o.orderCode, o.orderDate, ol.location, ol.timestamp
+        FROM OrderLocation ol
+        JOIN Orders o ON ol.orderCode = o.orderCode
+        WHERE TRUNC(ol.timestamp) = TRUNC(:selected_datetime)
+    """
+    cursor.execute(query, {'selected_datetime': selected_datetime})
+    order_locations = cursor.fetchall()
 
-        order_locations = cursor.fetchall()
-        cursor.close()
-        oracle_conn.close()
+    cursor.close()
+    oracle_conn.close()
 
-        if not order_locations:
-            return jsonify({'message': 'Nenhuma ordem encontrada para a data e hora selecionadas.'}), 404
+    if not order_locations:
+        return jsonify({'message': 'Nenhuma ordem encontrada para a data e hora selecionadas.'}), 404
 
-        orders_info = []
-        for order in order_locations:
-            order_code, order_date, location, timestamp = order
-            orders_info.append({
-                'orderCode': order_code,
-                'orderDate': order_date,
-                'location': location,
-                'timestamp': timestamp.strftime('%Y-%m-%d %H:%M:%S')  # Formatar o timestamp
-            })
+    orders_info = [
+        {
+            'orderCode': order[0],
+            'orderDate': order[1],
+            'location': order[2],
+            'timestamp': order[3].strftime('%Y-%m-%d %H:%M:%S')
+        }
+        for order in order_locations
+    ]
 
-        return jsonify({'orders': orders_info})
-
-    return jsonify({'error': 'Erro ao conectar ao banco de dados.'}), 500
-
+    return jsonify({'orders': orders_info})
 
 def manager_purchases(start_date, end_date, prep_time_comparison, days_diff_comparison):
     # Construa as condições dinamicamente
