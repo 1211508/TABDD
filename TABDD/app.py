@@ -498,38 +498,33 @@ def order_locations():
 
 def manager_purchases(start_date, end_date, prep_time_comparison, days_diff_comparison):
     # Construa as condições dinamicamente
+    prep_time_condition = "< 10" if prep_time_comparison == "less" else ">= 10"
+    days_diff_condition = "> 10" if days_diff_comparison == "more" else "<= 10"
 
-
-    # Crie a consulta SQL
+    # Query SQL
     query = f"""
         SELECT o.orderCode, o.orderDate, o.totalAmount, o.status, o.deliveryAddress,
                o.deliveryDate, o.preparationTime,
                (o.deliveryDate - o.orderDate) AS daysDifference
         FROM Orders o
-        WHERE o.orderDate BETWEEN TO_DATE(:start_date, 'YYYY-MM-DD') AND TO_DATE(:end_date, 'YYYY-MM-DD')
-          AND o.preparationTime <10
-          AND (o.deliveryDate - o.orderDate) >10
+        WHERE o.orderDate BETWEEN TO_DATE('{start_date}', 'YYYY-MM-DD') AND TO_DATE('{end_date}', 'YYYY-MM-DD')
+          AND o.preparationTime {prep_time_condition}
+          AND (o.deliveryDate - o.orderDate) {days_diff_condition}
     """
-    print(query)
- 
-    # Conectar ao banco de dados
+    
+    # Print da query final (log para depuração)
+    print("Query Executada:", query)
+
+    # Conectar ao banco e executar a query
     oracle_conn = connect_oracle()
     if oracle_conn:
         cursor = oracle_conn.cursor()
         try:
-            # Execute a consulta com os parâmetros
-            cursor.execute(query, {
-                'start_date': start_date,
-                'end_date': end_date
-            })
- 
-            # Busque os resultados
+            cursor.execute(query)  # Sem parâmetros, pois eles já foram inseridos acima
+
+            # Processar resultados
             purchases = cursor.fetchall()
             print(purchases)
-            if not purchases:
-                return {"message": "Nenhuma compra encontrada para os critérios selecionados."}
- 
-            # Processar os resultados
             purchases_data = []
             for purchase in purchases:
                 purchases_data.append({
@@ -542,15 +537,13 @@ def manager_purchases(start_date, end_date, prep_time_comparison, days_diff_comp
                     'preparationTime': purchase[6],
                     'daysDifference': purchase[7]
                 })
- 
-            return {"purchases": purchases_data}
- 
+            return {"purchases": purchases_data} if purchases_data else {"message": "Nenhuma compra encontrada."}
+
         finally:
             cursor.close()
             oracle_conn.close()
- 
-    return {"error": "Erro ao conectar ao banco de dados."}
 
+    return {"error": "Erro ao conectar ao banco de dados."}
 
 @app.route('/manager_purchases', methods=['GET'])
 def manager_purchases_route():
@@ -559,19 +552,23 @@ def manager_purchases_route():
     end_date = request.args.get('end_date')
     prep_time_comparison = request.args.get('prep_time_comparison')
     days_diff_comparison = request.args.get('days_diff_comparison')
- 
-    # Verifique se todos os parâmetros estão presentes
+
+    # Validação dos parâmetros
     if not all([start_date, end_date, prep_time_comparison, days_diff_comparison]):
         return jsonify({'error': 'Parâmetros ausentes ou inválidos.'}), 400
- 
-    # Chame a função principal com os parâmetros
+
+    # Chame a função principal
     result = manager_purchases(
         start_date=start_date,
         end_date=end_date,
         prep_time_comparison=prep_time_comparison,
         days_diff_comparison=days_diff_comparison
     )
- 
+
+    # Log e retorno do resultado
+    print("Resultado retornado pela função:", result)  # Log no terminal
+    return jsonify(result), 200
+
 @app.route('/gdpr_popup', methods=['GET', 'POST'])
 def gdpr_popup():
     if 'user_id' not in session:

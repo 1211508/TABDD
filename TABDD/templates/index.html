@@ -633,52 +633,42 @@
         });
 
         document.getElementById('filter-form').addEventListener('submit', function(event) {
-            event.preventDefault(); // Impede o envio tradicional do formulário
+            event.preventDefault();
 
-            // Captura os valores dos campos do formulário
+            // Captura os valores do formulário
             const startDate = document.getElementById('start_date').value;
             const endDate = document.getElementById('end_date').value;
             const prepTimeComparison = document.getElementById('prep_time_comparison').value;
             const daysDiffComparison = document.getElementById('days_diff_comparison').value;
 
-            // Verifique se todos os campos obrigatórios foram preenchidos
-            if (!startDate || !endDate) {
-                alert("Por favor, selecione as datas.");
-                return;
-            }
+            // Faz a requisição AJAX
+            fetch(`/manager_purchases?start_date=${startDate}&end_date=${endDate}&prep_time_comparison=${prepTimeComparison}&days_diff_comparison=${daysDiffComparison}`)
+                .then(response => response.json())
+                .then(data => {
+                    const ordersList = document.getElementById('orders-list');
+                    const noOrdersMessage = document.getElementById('no-orders-message');
 
-            // Log para verificar os dados antes de enviar
-            console.log('Dados enviados para o servidor:', {startDate, endDate, prepTimeComparison, daysDiffComparison});
+                    // Limpa o conteúdo anterior
+                    ordersList.innerHTML = '';
+                    noOrdersMessage.style.display = 'none';
 
-            // Realiza a requisição AJAX para o servidor
-            fetch(`/manager_purchases?start_date=${startDate}&end_date=${endDate}&prep_time_comparison=${prepTimeComparison}&days_diff_comparison=${daysDiffComparison}`, {
-                method: 'GET'
-            })
-            .then(response => response.json())
-            .then(data => {
-                const ordersList = document.getElementById('orders-list');
-                const noOrdersMessage = document.getElementById('no-orders-message');
-
-                // Limpa os resultados antigos
-                ordersList.innerHTML = '';
-                noOrdersMessage.style.display = 'none';
-
-                // Verifica se foram encontradas ordens
-                if (data.orders && data.orders.length > 0) {
-                    data.orders.forEach(order => {
-                        const listItem = document.createElement('li');
-                        listItem.textContent = `Código do Pedido: ${order.orderCode}, Data do Pedido: ${order.orderDate}, Tempo de Preparação: ${order.preparationTime} horas, Dias até Entrega: ${order.deliveryDays}`;
-                        ordersList.appendChild(listItem);
-                    });
-                } else {
-                    noOrdersMessage.style.display = 'block'; // Exibe a mensagem caso não encontre ordens
-                }
-            })
-            .catch(error => {
-                console.error('Erro ao buscar ordens:', error);
-                alert('Erro ao buscar ordens.');
-            });
+                    // Processa os resultados
+                    if (data.purchases && data.purchases.length > 0) {
+                        data.purchases.forEach(order => {
+                            const listItem = document.createElement('li');
+                            listItem.textContent = `Código: ${order.orderCode}, Data: ${order.orderDate}, Total: €${order.totalAmount}, Status: ${order.status}`;
+                            ordersList.appendChild(listItem);
+                        });
+                    } else {
+                        noOrdersMessage.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar as compras:', error);
+                    alert('Erro ao buscar as compras.');
+                });
         });
+
 
         document.getElementById('order-manager-form').addEventListener('submit', function(event) {
             event.preventDefault(); // Previne o envio padrão do formulário
