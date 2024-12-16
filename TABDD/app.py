@@ -765,11 +765,11 @@ def checkout():
         return jsonify({'success': False, 'message': 'Usuário não autenticado'}), 401
 
     data = request.get_json()
-    payment_method = data.get('payment_method')
-    orderCode = data.get('orderCode')  # Usando 'orderCode' como chave correta
+    payment_method_code = data.get('payment_method')  # Código numérico
+    orderCode = data.get('orderCode')
 
     # Validação básica dos dados recebidos
-    if not payment_method or not orderCode:
+    if not payment_method_code or not orderCode:
         return jsonify({'success': False, 'message': 'Dados incompletos.'}), 400
 
     # Conectar ao banco OracleSQL
@@ -781,7 +781,7 @@ def checkout():
         cursor = oracle_conn.cursor()
 
         # Busca a ordem pelo 'orderCode'
-        cursor.execute("SELECT totalAmount, orderStatus FROM Orders WHERE orderCode = :1", (orderCode,))
+        cursor.execute("SELECT totalAmount, status FROM Orders WHERE orderCode = :1", (orderCode,))
         order = cursor.fetchone()
 
         if not order:
@@ -790,22 +790,21 @@ def checkout():
         total_amount = order[0]
         current_status = order[1]
 
-        # Verifica se a ordem já foi aceita anteriormente
         if current_status == 'accepted':
             return jsonify({'success': False, 'message': 'A ordem já foi aceita anteriormente.'}), 400
 
-        # Processamento do pagamento
-        if payment_method == 'credit_card':
+        # Processamento do pagamento com base no código
+        if payment_method_code == 1:  # Credit Card
             transaction_status = process_credit_card_payment(data.get('card_details'), total_amount)
-        elif payment_method == 'mbway':
+        elif payment_method_code == 2:  # MBWay
             transaction_status = process_mbway_payment(data.get('mbway_number'), total_amount)
         else:
             return jsonify({'success': False, 'message': 'Método de pagamento inválido'}), 400
 
-        # Atualiza o status da ordem baseado na aprovação do pagamento
+        # Atualiza o status da ordem
         new_status = 'accepted' if transaction_status else 'suspended'
         cursor.execute(
-            "UPDATE Orders SET orderStatus = :1 WHERE orderCode = :2",
+            "UPDATE Orders SET status = :1 WHERE orderCode = :2",
             (new_status, orderCode)
         )
 
@@ -819,6 +818,7 @@ def checkout():
     finally:
         cursor.close()
         oracle_conn.close()
+
 
 # Simulação de Processamento de Pagamento - Cartão de Crédito
 def process_credit_card_payment(card_details, amount):

@@ -568,10 +568,10 @@
                         <div class="mb-3">
                             <label for="paymentMethod" class="form-label">Método de Pagamento</label>
                             <select id="paymentMethod" class="form-select" required>
-                                <option value="" disabled selected>Selecione um método</option>
-                                <option value="credit_card">Cartão de Crédito</option>
-                                <option value="mbway">MBWay</option>
+                                <option value="1">Credit Card</option>
+                                <option value="2">MBWay</option>
                             </select>
+                            
                         </div>
 
                         <!-- Campos adicionais para cartão de crédito -->
@@ -619,140 +619,142 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-        const finalizeButton = document.querySelector('#cartModal .btn-primary'); // Botão "Finalizar Compra"
-        const paymentMethodSelect = document.getElementById('paymentMethod');
-        const creditCardDetails = document.getElementById('creditCardDetails');
-        const mbwayDetails = document.getElementById('mbwayDetails');
-        const paymentForm = document.getElementById('paymentForm');
-        let currentOrderCode = null; // Variável para armazenar o código do pedido
+            const finalizeButton = document.querySelector('#cartModal .btn-primary'); // Botão "Finalizar Compra"
+            const paymentMethodSelect = document.getElementById('paymentMethod');
+            const creditCardDetails = document.getElementById('creditCardDetails');
+            const mbwayDetails = document.getElementById('mbwayDetails');
+            const paymentForm = document.getElementById('paymentForm');
+            let currentOrderCode = null; // Variável para armazenar o código do pedido
 
-        // Garantir que os elementos DOM existem
-        if (!finalizeButton || !paymentMethodSelect || !creditCardDetails || !mbwayDetails || !paymentForm) {
-            console.error('Erro: elementos DOM necessários não encontrados.');
-            return;
-        }
-
-        // Função para exibir os detalhes de pagamento com base no método selecionado
-        paymentMethodSelect.addEventListener('change', () => {
-            try {
-                if (paymentMethodSelect.value === 'credit_card') {
-                    creditCardDetails.style.display = 'block';
-                    mbwayDetails.style.display = 'none';
-                } else if (paymentMethodSelect.value === 'mbway') {
-                    creditCardDetails.style.display = 'none';
-                    mbwayDetails.style.display = 'block';
-                } else {
-                    creditCardDetails.style.display = 'none';
-                    mbwayDetails.style.display = 'none';
-                }
-            } catch (error) {
-                console.error('Erro ao alternar os detalhes do método de pagamento:', error);
+            // Garantir que os elementos DOM existem
+            if (!finalizeButton || !paymentMethodSelect || !creditCardDetails || !mbwayDetails || !paymentForm) {
+                console.error('Erro: elementos DOM necessários não encontrados.');
+                return;
             }
-        });
 
-        // Finalizar compra
-        finalizeButton.addEventListener('click', () => {
-            fetch('/cart_data')
-                .then(response => {
-                    if (!response.ok) throw new Error('Erro ao carregar dados do carrinho.');
-                    return response.json();
-                })
-                .then(cartData => {
-                    if (cartData.total_amount <= 0) {
-                        alert('Seu carrinho está vazio. Adicione itens antes de finalizar a compra.');
+            // Função para alternar campos com base no método de pagamento
+            paymentMethodSelect.addEventListener('change', () => {
+                try {
+                    if (paymentMethodSelect.value === '1') { // Credit Card
+                        creditCardDetails.style.display = 'block';
+                        mbwayDetails.style.display = 'none';
+                    } else if (paymentMethodSelect.value === '2') { // MBWay
+                        creditCardDetails.style.display = 'none';
+                        mbwayDetails.style.display = 'block';
+                    } else {
+                        creditCardDetails.style.display = 'none';
+                        mbwayDetails.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('Erro ao alternar os detalhes do método de pagamento:', error);
+                }
+            });
+
+            // Finalizar Compra: cria a ordem
+            finalizeButton.addEventListener('click', () => {
+                fetch('/cart_data')
+                    .then(response => {
+                        if (!response.ok) throw new Error('Erro ao carregar dados do carrinho.');
+                        return response.json();
+                    })
+                    .then(cartData => {
+                        if (cartData.total_amount <= 0) {
+                            alert('Seu carrinho está vazio. Adicione itens antes de finalizar a compra.');
+                            return;
+                        }
+
+                        // Cria a ordem no backend
+                        return fetch('/create_order', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                total_amount: cartData.total_amount,
+                                delivery_address: 'Endereço do Cliente'
+                            })
+                        });
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Erro ao criar a ordem.');
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            currentOrderCode = data.orderCode; // Armazena o código da ordem
+                            const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+                            paymentModal.show();
+                        } else {
+                            alert(`Erro ao criar a ordem: ${data.message}`);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro:', error);
+                        alert('Erro ao processar a compra. Por favor, tente novamente.');
+                    });
+            });
+
+            // Submeter o formulário de pagamento
+            paymentForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                if (!currentOrderCode) {
+                    alert('Erro: código do pedido não encontrado. Por favor, tente novamente.');
+                    return;
+                }
+
+                const paymentMethodCode = paymentMethodSelect.value;
+                if (!paymentMethodCode) {
+                    alert('Erro: selecione um método de pagamento.');
+                    return;
+                }
+
+                const paymentData = { payment_method: parseInt(paymentMethodCode), orderCode: currentOrderCode };
+
+                // Verificar e incluir dados adicionais conforme método de pagamento
+                if (paymentMethodCode === '1') { // Credit Card
+                    const cardNumber = document.getElementById('cardNumber').value.trim();
+                    const cardExpiry = document.getElementById('cardExpiry').value.trim();
+                    const cardCVV = document.getElementById('cardCVV').value.trim();
+
+                    if (!cardNumber || !cardExpiry || !cardCVV) {
+                        alert('Por favor, preencha todos os campos do cartão de crédito.');
                         return;
                     }
+                    paymentData.card_details = { card_number: cardNumber, card_expiry: cardExpiry, card_cvv: cardCVV };
+                } else if (paymentMethodCode === '2') { // MBWay
+                    const mbwayNumber = document.getElementById('mbwayNumber').value.trim();
+                    if (!mbwayNumber) {
+                        alert('Por favor, insira o número MBWay.');
+                        return;
+                    }
+                    paymentData.mbway_number = mbwayNumber;
+                }
 
-                    // Criar a ordem no backend
-                    return fetch('/create_order', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            total_amount: cartData.total_amount,
-                            delivery_address: 'Endereço do Cliente' // Personalizar conforme necessário
-                        })
+                // Enviar pagamento ao backend
+                fetch('/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(paymentData)
+                })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Erro ao processar o pagamento.');
+                        return response.json();
+                    })
+                    .then(result => {
+                        if (result.success) {
+                            alert(result.message);
+                            location.reload(); // Atualiza a página após sucesso
+                        } else {
+                            alert(`Erro: ${result.message}`);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro ao processar o pagamento:', error.message);
+                        alert('Erro ao processar o pagamento. Por favor, tente novamente.');
                     });
-                })
-                .then(response => {
-                    if (!response.ok) throw new Error('Erro ao criar a ordem.');
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        currentOrderCode = data.orderCode; // Armazena o código da ordem
-                        const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
-                        paymentModal.show();
-                    } else {
-                        alert(`Erro ao criar a ordem: ${data.message}`);
-                    }
-                })
-                .catch(error => {
-                    console.error('Erro:', error);
-                    alert('Erro ao processar a compra. Por favor, tente novamente.');
-                });
+            });
         });
 
-        // Submeter o formulário de pagamento
-        paymentForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-
-            if (!currentOrderCode) {
-                alert('Erro: código do pedido não encontrado. Por favor, tente novamente.');
-                return;
-            }
-
-            const paymentMethod = paymentMethodSelect.value;
-            if (!paymentMethod) {
-                alert('Erro: selecione um método de pagamento.');
-                return;
-            }
-
-            const paymentData = { payment_method: paymentMethod, orderCode: currentOrderCode };
-
-            if (paymentMethod === 'credit_card') {
-                const cardNumber = document.getElementById('cardNumber').value.trim();
-                const cardExpiry = document.getElementById('cardExpiry').value.trim();
-                const cardCVV = document.getElementById('cardCVV').value.trim();
-
-                if (!cardNumber || !cardExpiry || !cardCVV) {
-                    alert('Por favor, preencha todos os campos do cartão de crédito.');
-                    return;
-                }
-
-                paymentData.card_details = { card_number: cardNumber, card_expiry: cardExpiry, card_cvv: cardCVV };
-            } else if (paymentMethod === 'mbway') {
-                const mbwayNumber = document.getElementById('mbwayNumber').value.trim();
-                if (!mbwayNumber) {
-                    alert('Por favor, insira o número MBWay.');
-                    return;
-                }
-
-                paymentData.mbway_number = mbwayNumber;
-            }
-
-            fetch('/checkout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(paymentData)
-            })
-                .then(response => {
-                    if (!response.ok) throw new Error('Erro ao processar o pagamento.');
-                    return response.json();
-                })
-                .then(result => {
-                    if (result.success) {
-                        alert(result.message);
-                        location.reload(); // Atualiza a página após o sucesso
-                    } else {
-                        alert(`Erro: ${result.message}`);
-                    }
-                })
-                .catch(error => {
-                    console.error('Erro:', error);
-                    alert('Erro ao processar o pagamento. Por favor, tente novamente.');
-                });
-        });
-    });
+    
 
 
         document.addEventListener('DOMContentLoaded', function () {
