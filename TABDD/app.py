@@ -527,6 +527,9 @@ def redeem_points():
     })
 
 
+
+
+
 @app.route('/add_to_cart', methods=['POST'])
 def add_to_cart_route():
     if 'user_id' not in session:
@@ -712,6 +715,134 @@ def gdpr_popup():
             return jsonify({'success': False, 'message': f"Erro ao salvar consentimentos: {str(e)}"}), 500
 
     return render_template('gdpr_popup.html')
+
+@app.route('/create_order', methods=['POST'])
+def create_order():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Usuário não autenticado'}), 401
+
+    user_id = session['user_id']
+    data = request.get_json()
+
+    total_amount = data.get('total_amount')
+    delivery_address = data.get('delivery_address', 'Endereço Padrão')
+    status = 'pending'
+    order_date = datetime.now()
+    delivery_date = None  # Pode ser definido posteriormente
+    preparation_date = None  # Pode ser definido posteriormente
+
+    # Conectar ao OracleDB
+    oracle_conn = connect_oracle()
+    if not oracle_conn:
+        return jsonify({'success': False, 'message': 'Erro ao conectar ao banco de dados.'}), 500
+
+    try:
+        cursor = oracle_conn.cursor()
+
+        # Gerar um novo `orderCode`
+        cursor.execute("SELECT NVL(MAX(orderCode), 0) + 1 FROM Orders")
+        new_order_code = cursor.fetchone()[0]
+
+        # Inserir a ordem na tabela `Orders`
+        cursor.execute("""
+            INSERT INTO Orders (orderCode,orderDate, totalAmount , status, deliveryAddress, systemUserCode, deliveryDate, preparationTime)
+            VALUES (:1, :2, :3, :4, :5, :6, :7, :8)
+        """, (new_order_code,order_date , total_amount, status, delivery_address ,user_id, delivery_date, preparation_date))
+
+        oracle_conn.commit()
+
+        return jsonify({'success': True, 'orderCode': new_order_code, 'message': 'Ordem criada com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Erro ao criar ordem: {str(e)}'}), 500
+    finally:
+        cursor.close()
+        oracle_conn.close()
+
+        
+@app.route('/checkout', methods=['POST'])
+def checkout():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Usuário não autenticado'}), 401
+
+    data = request.get_json()
+    payment_method = data.get('payment_method')
+    orderCode = data.get('orderCode')  # Usando 'orderCode' como chave correta
+
+    # Validação básica dos dados recebidos
+    if not payment_method or not orderCode:
+        return jsonify({'success': False, 'message': 'Dados incompletos.'}), 400
+
+    # Conectar ao banco OracleSQL
+    oracle_conn = connect_oracle()
+    if not oracle_conn:
+        return jsonify({'success': False, 'message': 'Erro ao conectar ao banco de dados.'}), 500
+
+    try:
+        cursor = oracle_conn.cursor()
+
+        # Busca a ordem pelo 'orderCode'
+        cursor.execute("SELECT totalAmount, orderStatus FROM Orders WHERE orderCode = :1", (orderCode,))
+        order = cursor.fetchone()
+
+        if not order:
+            return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
+
+        total_amount = order[0]
+        current_status = order[1]
+
+        # Verifica se a ordem já foi aceita anteriormente
+        if current_status == 'accepted':
+            return jsonify({'success': False, 'message': 'A ordem já foi aceita anteriormente.'}), 400
+
+        # Processamento do pagamento
+        if payment_method == 'credit_card':
+            transaction_status = process_credit_card_payment(data.get('card_details'), total_amount)
+        elif payment_method == 'mbway':
+            transaction_status = process_mbway_payment(data.get('mbway_number'), total_amount)
+        else:
+            return jsonify({'success': False, 'message': 'Método de pagamento inválido'}), 400
+
+        # Atualiza o status da ordem baseado na aprovação do pagamento
+        new_status = 'accepted' if transaction_status else 'suspended'
+        cursor.execute(
+            "UPDATE Orders SET orderStatus = :1 WHERE orderCode = :2",
+            (new_status, orderCode)
+        )
+
+        oracle_conn.commit()
+
+        message = "Pagamento aprovado. Pedido aceito." if transaction_status else "Pagamento recusado. Pedido suspenso."
+        return jsonify({'success': transaction_status, 'message': message})
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f"Erro no processamento: {str(e)}"}), 500
+    finally:
+        cursor.close()
+        oracle_conn.close()
+
+# Simulação de Processamento de Pagamento - Cartão de Crédito
+def process_credit_card_payment(card_details, amount):
+    """
+    Simula o processamento do pagamento por cartão de crédito.
+    Retorna True para aprovado, False para recusado.
+    """
+    if not card_details:
+        return False
+    # Simulação: Aprovação se o cartão termina em 1234
+    return card_details.get('card_number', '').endswith('1234')
+
+# Simulação de Processamento de Pagamento - MBWay
+def process_mbway_payment(mbway_number, amount):
+    """
+    Simula o processamento do pagamento via MBWay.
+    Retorna True para aprovado, False para recusado.
+    """
+    if not mbway_number:
+        return False
+    # Simulação: Aprova se o número tem 9 dígitos
+    return len(mbway_number) == 9
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
