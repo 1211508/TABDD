@@ -428,21 +428,43 @@ def loyalty_points():
     # Recuperar o carrinho do usuário
     cart = db_2.cart.find_one({"SystemUserCode": user_id})
     if not cart or not cart.get('total_amount'):
-        return jsonify({'success': True, 'points': []})  # Sem compras válidas
+        return jsonify({'success': True, 'loyalty_points': 0.0})  # Sem compras válidas
 
     total_spent = cart['total_amount']
     earned_points = round(total_spent * 0.005, 2)  # 0.5% do total gasto
 
-    # Verificar pontos resgatados existentes
+    # Recuperar pontos do MongoDB
     user_loyalty = loyalty_points_collection.find_one({"SystemUserCode": user_id})
-    redeemed_points = sum(point.get('redeemedPoints', 0) for point in user_loyalty.get('points', [])) if user_loyalty else 0
+    if user_loyalty is None:
+        # Se não existir, cria um registro com os pontos ganhos
+        loyalty_points_collection.insert_one({
+            "SystemUserCode": user_id,
+            "points": [{"loyaltyPointCode": random.randint(1000, 9999),
+                        "earnedPoints": earned_points,
+                        "redeemedPoints": 0,
+                        "date": datetime.now().strftime("%Y-%m-%d")}]
+        })
+    else:
+        # Atualiza os pontos se não estiverem registrados
+        existing_points = sum(point.get('earnedPoints', 0) for point in user_loyalty.get('points', []))
+        if earned_points > existing_points:  # Só adiciona pontos novos
+            loyalty_points_collection.update_one(
+                {"SystemUserCode": user_id},
+                {"$push": {"points": {
+                    "loyaltyPointCode": random.randint(1000, 9999),
+                    "earnedPoints": earned_points,
+                    "redeemedPoints": 0,
+                    "date": datetime.now().strftime("%Y-%m-%d")
+                }}}
+            )
 
-    # Retorna os pontos disponíveis sem adicionar entradas repetidas no banco
-    available_points = earned_points - redeemed_points
-    available_points = max(available_points, 0)  # Garante que não haja valores negativos
+    # Recalcula pontos disponíveis
+    user_loyalty = loyalty_points_collection.find_one({"SystemUserCode": user_id})
+    total_earned = sum(point.get('earnedPoints', 0) for point in user_loyalty.get('points', []))
+    total_redeemed = sum(point.get('redeemedPoints', 0) for point in user_loyalty.get('points', []))
+    available_points = max(round(total_earned - total_redeemed, 2), 0)
 
-    return jsonify({'success': True, 'loyalty_points': round(available_points, 2)})
-
+    return jsonify({'success': True, 'loyalty_points': available_points})
 
 @app.route('/redeem_points', methods=['POST'])
 def redeem_points():
@@ -450,7 +472,7 @@ def redeem_points():
         return jsonify({'success': False, 'message': 'Usuário não autenticado'}), 401
 
     user_id = session['user_id']
-    
+
     # Recupera o carrinho do usuário
     cart = db_2.cart.find_one({"SystemUserCode": user_id})
     if not cart or cart['total_amount'] == 0:
@@ -458,19 +480,25 @@ def redeem_points():
 
     # Recupera os pontos de fidelidade do usuário
     user_loyalty = loyalty_points_collection.find_one({"SystemUserCode": user_id})
-    if not user_loyalty or not user_loyalty.get('points'):
+    if user_loyalty is None:
         return jsonify({'success': False, 'message': 'Nenhum ponto de fidelidade disponível'}), 400
 
-    # Calcula o total de pontos disponíveis
-    total_earned = sum(point['earnedPoints'] for point in user_loyalty['points'])
-    total_redeemed = sum(point.get('redeemedPoints', 0) for point in user_loyalty['points'])
-    available_points = total_earned - total_redeemed
+    # Soma os pontos ganhos e resgatados
+    total_earned = sum(point.get('earnedPoints', 0) for point in user_loyalty.get('points', []))
+    total_redeemed = sum(point.get('redeemedPoints', 0) for point in user_loyalty.get('points', []))
 
-    if available_points < 10:
+    # Calcula os pontos disponíveis
+    available_points = round(total_earned - total_redeemed, 2)
+
+    print(f"Total Earned: {total_earned}")
+    print(f"Total Redeemed: {total_redeemed}")
+    print(f"Available Points Before Resgate: {available_points}")
+
+    if available_points < 10.0:
         return jsonify({'success': False, 'message': 'Saldo insuficiente de pontos. É necessário pelo menos €10.'}), 400
 
-    # Aplica o desconto de €10 ao total do carrinho
-    discount = 10
+    # Resgata exatamente €10 e ajusta os pontos
+    discount = 10.0
     new_total_amount = cart['total_amount'] - discount
 
     # Atualiza o carrinho no MongoDB
@@ -479,21 +507,23 @@ def redeem_points():
         {"$set": {"total_amount": new_total_amount}}
     )
 
-    # Atualiza os pontos resgatados no loyaltyPoint
+    # Atualiza pontos resgatados no loyaltyPoint, zerando os pontos disponíveis
     loyalty_points_collection.update_one(
         {"SystemUserCode": user_id},
         {"$push": {"points": {
             "loyaltyPointCode": random.randint(1000, 9999),
-            "earnedPoints": 0, 
-            "redeemedPoints": discount,
+            "earnedPoints": 0,
+            "redeemedPoints": available_points,  # Resgata o valor total disponível
             "date": datetime.now().strftime("%Y-%m-%d")
         }}}
     )
 
+    print("Pontos resgatados com sucesso!")
     return jsonify({
         'success': True,
         'message': 'Pontos resgatados com sucesso! Desconto aplicado.',
-        'new_total': new_total_amount
+        'new_total': new_total_amount,
+        'available_points': 0.0  # Retorna os pontos zerados
     })
 
 
