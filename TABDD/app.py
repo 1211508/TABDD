@@ -13,6 +13,9 @@ mongo_client = MongoClient("mongodb://mongoadmin:501c74327eb2366e9b961350@vsgate
 db = mongo_client['TABDD_NOSQL']
 db_2 = mongo_client['TABDD_CART']
 product_ratings_collection = db['productRating']
+loyalty_points_collection = db['loyaltyPoint']
+cart_collection = db['cart']
+
 
 
 # Função para conectar ao OracleDB
@@ -396,6 +399,7 @@ def cart():
     total_price = cart['total_amount'] if cart else 0
  
     return render_template('cart.html', cart_items=cart_items, total_price=total_price)
+
 @app.route('/cart_data', methods=['GET'])
 def cart_data():
     if 'user_id' not in session:
@@ -412,6 +416,86 @@ def cart_data():
         'items': cart['items'],
         'total_amount': cart['total_amount']
     })
+
+from datetime import datetime
+
+@app.route('/loyalty_points', methods=['GET'])
+def loyalty_points():
+    user_id = session.get('user_id')  # Obter o ID do usuário logado
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Usuário não autenticado'}), 401
+
+    # Recuperar o carrinho do usuário
+    cart = db_2.cart.find_one({"SystemUserCode": user_id})
+    if not cart or not cart.get('total_amount'):
+        return jsonify({'success': True, 'points': []})  # Sem compras válidas
+
+    total_spent = cart['total_amount']
+    earned_points = round(total_spent * 0.005, 2)  # 0.5% do total gasto
+
+    # Verificar pontos resgatados existentes
+    user_loyalty = loyalty_points_collection.find_one({"SystemUserCode": user_id})
+    redeemed_points = sum(point.get('redeemedPoints', 0) for point in user_loyalty.get('points', [])) if user_loyalty else 0
+
+    # Retorna os pontos disponíveis sem adicionar entradas repetidas no banco
+    available_points = earned_points - redeemed_points
+    available_points = max(available_points, 0)  # Garante que não haja valores negativos
+
+    return jsonify({'success': True, 'loyalty_points': round(available_points, 2)})
+
+
+@app.route('/redeem_points', methods=['POST'])
+def redeem_points():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Usuário não autenticado'}), 401
+
+    user_id = session['user_id']
+    
+    # Recupera o carrinho do usuário
+    cart = db_2.cart.find_one({"SystemUserCode": user_id})
+    if not cart or cart['total_amount'] == 0:
+        return jsonify({'success': False, 'message': 'Carrinho vazio ou inexistente'}), 400
+
+    # Recupera os pontos de fidelidade do usuário
+    user_loyalty = loyalty_points_collection.find_one({"SystemUserCode": user_id})
+    if not user_loyalty or not user_loyalty.get('points'):
+        return jsonify({'success': False, 'message': 'Nenhum ponto de fidelidade disponível'}), 400
+
+    # Calcula o total de pontos disponíveis
+    total_earned = sum(point['earnedPoints'] for point in user_loyalty['points'])
+    total_redeemed = sum(point.get('redeemedPoints', 0) for point in user_loyalty['points'])
+    available_points = total_earned - total_redeemed
+
+    if available_points < 10:
+        return jsonify({'success': False, 'message': 'Saldo insuficiente de pontos. É necessário pelo menos €10.'}), 400
+
+    # Aplica o desconto de €10 ao total do carrinho
+    discount = 10
+    new_total_amount = cart['total_amount'] - discount
+
+    # Atualiza o carrinho no MongoDB
+    db_2.cart.update_one(
+        {"SystemUserCode": user_id},
+        {"$set": {"total_amount": new_total_amount}}
+    )
+
+    # Atualiza os pontos resgatados no loyaltyPoint
+    loyalty_points_collection.update_one(
+        {"SystemUserCode": user_id},
+        {"$push": {"points": {
+            "loyaltyPointCode": random.randint(1000, 9999),
+            "earnedPoints": 0, 
+            "redeemedPoints": discount,
+            "date": datetime.now().strftime("%Y-%m-%d")
+        }}}
+    )
+
+    return jsonify({
+        'success': True,
+        'message': 'Pontos resgatados com sucesso! Desconto aplicado.',
+        'new_total': new_total_amount
+    })
+
 
 @app.route('/add_to_cart', methods=['POST'])
 def add_to_cart_route():
